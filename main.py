@@ -14,15 +14,11 @@ class GraphApp:
 		
 		# Initialize graph
 		self.graph = nx.Graph()
-		self.nodes = []
-		self.edges = []
 		self.selected_node = None
 
 		# Create UI components
 		self.canvas = tk.Canvas(root, width=600, height=400, bg="white")
 		self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-		self.canvas.bind("<Button-1>", self.add_node)
-		self.canvas.bind("<Button-3>", self.add_edge)
 
 		self.control_frame = tk.Frame(root)
 		self.control_frame.pack(side=tk.RIGHT, fill=tk.Y)
@@ -34,9 +30,8 @@ class GraphApp:
 		self.clear_button.pack(pady=10)
 
 	def add_node(self, event):
-		node_id = len(self.nodes)
-		self.nodes.append((event.x, event.y)) 
-		self.graph.add_node(node_id, pos=(event.x, event.y))
+		node_id = len(self.graph.nodes())
+		self.graph.add_node({'id': node_id, 'x': event.x, 'y': event.y, 'color': 'white'})
 		self.redraw()
 
 	def add_edge(self, event):
