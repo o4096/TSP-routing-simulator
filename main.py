@@ -6,7 +6,7 @@ class Node:
 	obj_count= 0
 	def __init__(self, id, x, y):
 		Node.obj_count+= 1
-		self.id=     Node.obj_count
+		self.id=     Node.obj_count-1
 		self.x=      x
 		self.y=      y
 		self.color=  'white'
@@ -41,12 +41,25 @@ class MainApp:
 		self.clear_button= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
 		self.clear_button.pack(pady=10)
 
+
+		self.input_weight_label= tk.Label(self.control_frame,text='weight')
+		self.input_weight_label.pack()
+		self.input_weight= tk.Entry(self.control_frame)
+		self.input_weight.pack(pady=10)
+
 	def mb_left(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
 		if node_hit:
+			check = True
 			if self.selected_node: #link nodes
-				self.graph.add_edge(self.selected_node, node_hit)
-			self.selected_node= node_hit
+				if(self.weight_valid()):
+					self.graph.add_edge(self.selected_node, node_hit, weight = int(self.input_weight.get()))
+					print(nx.adjacency_matrix(self.graph,weight='weight'))
+				else:
+					messagebox.showerror('error','weight should be numbers!')
+					check = False
+					
+			if (check): self.selected_node= node_hit
 		else:
 			self.graph.add_node(Node(len(self.graph.nodes), event.x, event.y))
 		self.canvas_redraw()
@@ -61,6 +74,9 @@ class MainApp:
 		else:
 			self.selected_node= None
 		self.canvas_redraw()
+
+	def weight_valid(self):
+		return self.input_weight.get().isdigit()
 
 	def _get_mouse_collision(self, x, y):
 		hit= None
@@ -81,6 +97,8 @@ class MainApp:
 		messagebox.showinfo('TSP', 'Algorithm not implemented yet.')#TODO: Implement TSP algorithm
 
 	def canvas_clear(self):
+		Node.obj_count = 0
+		self.selected_node = None
 		self.canvas.delete('all')
 		self.graph.clear()
 
@@ -89,6 +107,7 @@ class MainApp:
 		for edge in self.graph.edges:	#draw edges
 			n1, n2= edge
 			self.canvas.create_line(n1.x, n1.y, n2.x, n2.y, fill='black')
+			self.canvas.create_text((n1.x+n2.x)/2 - 5, (n1.y+n2.y)/2 - 5, text=str(self.graph.edges[n1,n2]['weight']))
 
 		for node in self.graph.nodes:	#draw nodes
 			node.draw(self.canvas)
