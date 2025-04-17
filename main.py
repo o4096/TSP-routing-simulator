@@ -1,100 +1,106 @@
 import  tkinter as tk
 from    tkinter import messagebox
 import  networkx as nx
-import  os
-#import matplotlib.pyplot as plt
-#from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-NODE_RADIUS= 10
+class Node:
+	obj_count= 0
+	def __init__(self, id, x, y):
+		Node.obj_count+= 1
+		self.id=     Node.obj_count
+		self.x=      x
+		self.y=      y
+		self.color=  'white'
+		self.data=   None
+		self.radius= 10
 
-class GraphApp:
+	def draw(self, canvas):
+		canvas.create_oval(self.x-self.radius, self.y-self.radius, self.x+self.radius, self.y+self.radius, fill=self.color)
+		canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
+
+class MainApp:
 	def __init__(self, root):
 		self.root= root
 		self.root.title('Graph Drawing and TSP Solver')
+		self.selected_node= None
 		
 		# Initialize graph
-		self.graph = nx.Graph()
-		self.selected_node = None
+		self.graph= nx.Graph()
 
 		# Create UI components
 		self.canvas= tk.Canvas(root, width=600, height=400, bg='white')
 		self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+		self.canvas.bind('<Button-1>', self.mb_left)
+		self.canvas.bind('<Button-3>', self.mb_right)
 
-		self.control_frame = tk.Frame(root)
+		self.control_frame= tk.Frame(root)
 		self.control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10)
 
-		self.run_tsp_button= tk.Button(self.control_frame, text='Run TSP Algorithm', command=self.run_tsp)
+		self.run_tsp_button= tk.Button(self.control_frame, text='Run TSP Algorithm', command=self.run)
 		self.run_tsp_button.pack(pady=10)
 
-		self.clear_button= tk.Button(self.control_frame, text='Clear Graph', command=self.clear_graph)
+		self.clear_button= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
 		self.clear_button.pack(pady=10)
 
-	def add_node(self, event):
-		node_id = len(self.graph.nodes())
-		self.graph.add_node({'id': node_id, 'x': event.x, 'y': event.y, 'color': 'white'})
-		self.redraw()
-
-	def add_edge(self, event):
-		node= self.find_closest_node(event.x, event.y)
-		if not node:
-			return
-				
-		self.selected_node= node
-		if len(self.edges) > 0 and node in self.edges[-1]:
-			return
-
-		if len(self.edges) == 0 or len(self.edges[-1]) == 2:
-			self.edges.append([node])
+	def mb_left(self, event):
+		node_hit= self._get_mouse_collision(event.x, event.y)
+		if node_hit:
+			if self.selected_node: #link nodes
+				self.graph.add_edge(self.selected_node, node_hit)
+			self.selected_node= node_hit
 		else:
-			self.edges[-1].append(node)
-			self.graph.add_edge(self.edges[-1][0], self.edges[-1][1])
-			self.redraw()
+			self.graph.add_node(Node(len(self.graph.nodes), event.x, event.y))
+		self.canvas_redraw()
 
-	def find_closest_node(self, x, y):
-		min_dist = float('inf')
-		closest_node = None
-		os.system('cls')
-		for node_id, (nx, ny) in enumerate(self.nodes):
-			dist = (nx - x) ** 2 + (ny - y) ** 2
-			print(f'click at ({x:4d}, {y:4d}), node: {node_id:2d} ({nx:4d}, {ny:4d}), distance: {dist}')
-			if dist < min_dist and dist <= NODE_RADIUS*NODE_RADIUS:
-				min_dist = dist
-				closest_node= node_id
-				self.selected_node= node_id
-				self.redraw()
-		return closest_node
+	def mb_right(self, event):
+		node_hit= self._get_mouse_collision(event.x, event.y)
+		if node_hit:
+			if node_hit is self.selected_node:
+				self.selected_node= None
+			else:
+				self.graph.remove_node(node_hit)
+		else:
+			self.selected_node= None
+		self.canvas_redraw()
 
-	def run_tsp(self):
+	def _get_mouse_collision(self, x, y):
+		hit= None
+		min_dist= float('inf')
+
+		for node in self.graph.nodes():
+			dist= abs(node.x-x)+abs(node.y-y)
+			if dist<min_dist and dist<=node.radius:
+				min_dist= dist
+				hit= node
+		return hit
+
+	def run(self):
 		if len(self.graph.nodes) < 2:
 			messagebox.showerror('Error', 'Add at least two nodes to run TSP.')
 			return
+		
+		messagebox.showinfo('TSP', 'Algorithm not implemented yet.')#TODO: Implement TSP algorithm
 
-		# Placeholder for TSP algorithm
-		messagebox.showinfo('TSP', 'TSP algorithm not implemented yet.')
-
-	def clear_graph(self):
+	def canvas_clear(self):
+		self.canvas.delete('all')
 		self.graph.clear()
-		self.nodes.clear()
-		self.edges.clear()
+
+	def canvas_redraw(self):
 		self.canvas.delete('all')
+		for edge in self.graph.edges:	#draw edges
+			n1, n2= edge
+			self.canvas.create_line(n1.x, n1.y, n2.x, n2.y, fill='black')
 
-	def redraw(self):
-		self.canvas.delete('all')
-		for edge in self.edges:
-			if len(edge) == 2:
-				x1, y1 = self.graph.nodes[edge[0]]['pos']
-				x2, y2 = self.graph.nodes[edge[1]]['pos']
-				self.canvas.create_line(x1, y1, x2, y2, fill='black')
+		for node in self.graph.nodes:	#draw nodes
+			node.draw(self.canvas)
 
-		for node_id, (x, y) in enumerate(self.nodes):
-			self.canvas.create_oval(x-NODE_RADIUS, y-NODE_RADIUS, x+NODE_RADIUS, y+NODE_RADIUS, fill='white')
-			self.canvas.create_text(x, y, text=str(node_id), fill='black')
+		# selection rendering is separate from all other node rendering to separate UI interaction from any graph animation
+		if self.selected_node:		#if there's selected node, highlight it
+			self.canvas.create_oval(self.selected_node.x-self.selected_node.radius, self.selected_node.y-self.selected_node.radius, #top left
+			   			self.selected_node.x+self.selected_node.radius, self.selected_node.y+self.selected_node.radius, #bottom right
+						outline='red', width=2, fill='grey')
+			self.canvas.create_text(self.selected_node.x,             self.selected_node.y, text=str(self.selected_node.id), fill='black')
 
-		node= self.nodes[self.selected_node]
-		self.canvas.create_oval(node[0]-NODE_RADIUS, node[1]-NODE_RADIUS, node[0]+NODE_RADIUS, node[1]+NODE_RADIUS, fill='grey')
-
-
-if __name__ == '__main__':
-	root = tk.Tk()
-	app = GraphApp(root)
+if __name__=='__main__':
+	root= tk.Tk()
+	app= MainApp(root)
 	root.mainloop()
