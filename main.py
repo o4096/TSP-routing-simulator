@@ -1,26 +1,26 @@
-import  tkinter as tk
-from    tkinter import messagebox
-import  networkx as nx
+from   tkinter import messagebox
+import tkinter as tk
+import networkx as nx
 
 class Node:
-	obj_count= 0
+	# obj_count= 0
 	def __init__(self, id, x, y):
-		Node.obj_count+= 1
-		self.id=     Node.obj_count-1
+		# Node.obj_count+= 1
+		# self.id=     Node.obj_count-1
 		self.x=      x
 		self.y=      y
-		self.color=  'white'
-		self.data=   None
-		self.radius= 10
+		self.color=  '#FFFFFF'
+		# self.data=   None
+		self.radius= 4
 
-	def draw(self, canvas, color =None):
-		canvas.create_oval(self.x-self.radius, self.y-self.radius, self.x+self.radius, self.y+self.radius, fill=color if color else self.color)
-		canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
+	def draw(self, canvas):
+		canvas.create_oval(self.x-self.radius, self.y-self.radius, self.x+self.radius, self.y+self.radius, fill=self.color)
+		# canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
 
 class MainApp:
 	def __init__(self, root):
 		self.root= root
-		self.root.title('Graph Drawing and TSP Solver')
+		self.root.title('TSP Solver')
 		self.selected_node= None
 		self.initial_nodes= []
 		self.input_initial_labels = []
@@ -29,7 +29,7 @@ class MainApp:
 		self.graph= nx.Graph()
 
 		# Create UI components
-		self.canvas= tk.Canvas(root, width=600, height=400, bg='white')
+		self.canvas= tk.Canvas(root, width=600, height=400, bg='#111121')
 		self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
@@ -37,14 +37,13 @@ class MainApp:
 		self.control_frame= tk.Frame(root)
 		self.control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10)
 
-		self.run_tsp_button= tk.Button(self.control_frame, text='Run TSP Algorithm', command=self.run)
-		self.run_tsp_button.pack(pady=10)
+		self.run_button= tk.Button(self.control_frame, text='Run', command=self.run)
+		self.run_button.pack(pady=10)
 
 		self.clear_button= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
 		self.clear_button.pack(pady=10)
 
-
-		self.input_weight_label= tk.Label(self.control_frame,text='weight')
+		self.input_weight_label= tk.Label(self.control_frame,text='seed')
 		self.input_weight_label.pack()
 		self.input_weight= tk.Entry(self.control_frame)
 		self.input_weight.pack(pady=10)
@@ -52,37 +51,38 @@ class MainApp:
 	def mb_left(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
 		if node_hit:
-			if not self.selected_node: # no selected nodes
-				self.selected_node = node_hit
-			elif self.selected_node == node_hit and node_hit not in self.initial_nodes: #add to inital nodes
-				self.initial_nodes.append(node_hit)
-				self.add_initial_entry_textbox()
-			elif self.selected_node != node_hit:#link nodes
-				if(self.weight_valid()):
-					self.graph.add_edge(self.selected_node, node_hit, weight = int(self.input_weight.get()))
-					print(nx.adjacency_matrix(self.graph,weight='weight'))
-				else:
-					messagebox.showerror('error','weight should be numbers!')
+			# if self.selected_node: #link nodes
+			# 	if(self.weight_valid()):
+			# 		self.graph.add_edge(self.selected_node, node_hit, weight= int(self.input_weight.get()))
+			# 		print(nx.adjacency_matrix(self.graph, weight='weight'))
+			# 	else:
+			# 		messagebox.showerror('error','weight should be numbers!')
+			# 		return
+
+			self.selected_node= node_hit
 		else:
 			self.graph.add_node(Node(len(self.graph.nodes), event.x, event.y))
 		self.canvas_redraw()
 
 	def mb_right(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
-		if node_hit:
-			if node_hit is self.selected_node:
-				self.selected_node= None
-			else:
-				if node_hit in self.initial_nodes:
-					self.remove_initial_entry_textbox(node_hit)
-					self.initial_nodes.remove(node_hit)
-				self.graph.remove_node(node_hit)
+		# if node_hit:
+		# 	if node_hit is self.selected_node:
+		# 		self.selected_node= None
+		# 	else:
+		# 		self.graph.remove_node(node_hit)
+		# else:
+		# 	self.selected_node= None
+
+		if node_hit and node_hit is not self.selected_node:
+			self.graph.remove_node(node_hit)
 		else:
 			self.selected_node= None
+		
 		self.canvas_redraw()
 
-	def weight_valid(self):
-		return self.input_weight.get().isdigit()
+	# def weight_valid(self):
+	# 	return self.input_weight.get().isdigit()
 
 	def _get_mouse_collision(self, x, y):
 		hit= None
@@ -96,14 +96,13 @@ class MainApp:
 		return hit
 
 	def run(self):
-		if len(self.graph.nodes) < 2:
+		if len(self.graph.nodes)<2:
 			messagebox.showerror('Error', 'Add at least two nodes to run TSP.')
 			return
-		
 		messagebox.showinfo('TSP', 'Algorithm not implemented yet.')#TODO: Implement TSP algorithm
 
 	def canvas_clear(self):
-		Node.obj_count = 0
+		# Node.obj_count = 0
 		self.selected_node = None
 		for node in self.initial_nodes:
 			self.remove_initial_entry_textbox(node)
@@ -111,37 +110,22 @@ class MainApp:
 		self.canvas.delete('all')
 		self.graph.clear()
 
-	def add_initial_entry_textbox(self):
-		label= tk.Label(self.control_frame,text='starting node "'+ str(self.selected_node.id) +'" ants:')
-		label.pack()
-		entry= tk.Entry(self.control_frame)
-		entry.pack()
-		self.input_initial_labels.append((self.selected_node.id,label,entry))
-		
-	def remove_initial_entry_textbox(self, node):
-		for id, label, entry in self.input_initial_labels:
-			if  id == node.id:
-				label.destroy()
-				entry.destroy()
-				self.input_initial_labels.remove((id,label,entry))
-				break
-
 	def canvas_redraw(self):
 		self.canvas.delete('all')
-		for edge in self.graph.edges:	#draw edges
-			n1, n2= edge
-			self.canvas.create_line(n1.x, n1.y, n2.x, n2.y, fill='black')
-			self.canvas.create_text((n1.x+n2.x)/2 - 5, (n1.y+n2.y)/2 - 5, text=str(self.graph.edges[n1,n2]['weight']))
+		# for edge in self.graph.edges:	#draw edges
+		# 	n1, n2= edge
+		# 	self.canvas.create_line(n1.x, n1.y, n2.x, n2.y, fill='black')
+		# 	self.canvas.create_text((n1.x+n2.x)/2 - 5, (n1.y+n2.y)/2 - 5, text=str(self.graph.edges[n1,n2]['weight']))
 
 		for node in self.graph.nodes:	#draw nodes
-			node.draw(self.canvas, 'orange' if node in self.initial_nodes else None)
+			node.draw(self.canvas)
 
 		# selection rendering is separate from all other node rendering to separate UI interaction from any graph animation
 		if self.selected_node:		#if there's selected node, highlight it
 			self.canvas.create_oval(self.selected_node.x-self.selected_node.radius, self.selected_node.y-self.selected_node.radius, #top left
 			   			self.selected_node.x+self.selected_node.radius, self.selected_node.y+self.selected_node.radius, #bottom right
-						outline='red', width=2, fill= 'orange' if (self.selected_node in self.initial_nodes) else 'grey')
-			self.canvas.create_text(self.selected_node.x,             self.selected_node.y, text=str(self.selected_node.id), fill='black')
+						outline='red', width=2, fill=self.selected_node.color)
+			# self.canvas.create_text(self.selected_node.x,             self.selected_node.y, text=str(self.selected_node.id), fill='black')
 
 if __name__=='__main__':
 	root= tk.Tk()
