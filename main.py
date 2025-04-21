@@ -1,35 +1,35 @@
 from   tkinter import messagebox
 import tkinter as tk
-import networkx as nx
+import numpy as np
+import time
+from aco_hybrid import HybridACO, generate_children
 
 class Node:
-	# obj_count= 0
-	def __init__(self, id, x, y):
-		# Node.obj_count+= 1
-		# self.id=     Node.obj_count-1
+	obj_count= 0
+	def __init__(self, x, y):
+		Node.obj_count+= 1
+		self.id=     Node.obj_count
 		self.x=      x
 		self.y=      y
-		self.color=  '#FFFFFF'
+		self.color=  'white'
 		# self.data=   None
-		self.radius= 4
+		self.radius= 10
 
 	def draw(self, canvas):
 		canvas.create_oval(self.x-self.radius, self.y-self.radius, self.x+self.radius, self.y+self.radius, fill=self.color)
-		# canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
+		canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
 
 class MainApp:
 	def __init__(self, root):
 		self.root= root
 		self.root.title('TSP Solver')
-		self.selected_node= None
-		self.initial_nodes= []
-		self.input_initial_labels = []
-		
-		# Initialize graph
-		self.graph= nx.Graph()
+
+		np.random.seed(time.localtime().tm_sec) #TODO: make this a seedable random number generator
+		self.nodes:list[Node]= self.rand_points(20, (0, 600), (0, 400))
+		# self.lines:list[tuple[int, int]]= []
 
 		# Create UI components
-		self.canvas= tk.Canvas(root, width=600, height=400, bg='#111121')
+		self.canvas= tk.Canvas(root, width=600, height=400, bg='white')
 		self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
@@ -37,97 +37,117 @@ class MainApp:
 		self.control_frame= tk.Frame(root)
 		self.control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10)
 
-		self.run_button= tk.Button(self.control_frame, text='Run', command=self.run)
-		self.run_button.pack(pady=10)
+		self.button_run= tk.Button(self.control_frame, text='Run', command=self.run)
+		self.button_run.pack(pady=10)
+		self.button_clear= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
+		self.button_clear.pack(pady=10)
+		self.button_rand_point= tk.Button(self.control_frame, text='Random Point', command=self.rand_point)
+		self.button_rand_point.pack(pady=10)
 
-		self.clear_button= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
-		self.clear_button.pack(pady=10)
+		self.textbox_seed_label= tk.Label(self.control_frame, text='seed')
+		self.textbox_seed_label.pack()
+		self.textbox_seed= tk.Entry(self.control_frame)
+		self.textbox_seed.pack(pady=10)
+		self.canvas_redraw()
+	
+	def reseed(self):
+		seed= self.textbox_seed.get()
+		if seed.isdigit():
+			np.random.seed(int(seed))
+		else:
+			messagebox.showerror('Error', 'Seed must be a number.')
+			return
 
-		self.input_weight_label= tk.Label(self.control_frame,text='seed')
-		self.input_weight_label.pack()
-		self.input_weight= tk.Entry(self.control_frame)
-		self.input_weight.pack(pady=10)
+	def rand_points(self, num_points, x_range, y_range):
+		x_coords= np.random.uniform(x_range[0], x_range[1], num_points)
+		y_coords= np.random.uniform(y_range[0], y_range[1], num_points)
+		nodes= [Node(x, y) for x, y in zip(x_coords, y_coords)]
+		return nodes
+
+	def rand_point(self):#TODO: make a seeded node generation system for consistent results
+		x= np.random.randint(0, self.canvas.winfo_width())
+		y= np.random.randint(0, self.canvas.winfo_height())
+		self.nodes.append(Node(x, y))
+		self.canvas_redraw()
 
 	def mb_left(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
-		if node_hit:
-			# if self.selected_node: #link nodes
-			# 	if(self.weight_valid()):
-			# 		self.graph.add_edge(self.selected_node, node_hit, weight= int(self.input_weight.get()))
-			# 		print(nx.adjacency_matrix(self.graph, weight='weight'))
-			# 	else:
-			# 		messagebox.showerror('error','weight should be numbers!')
-			# 		return
-
-			self.selected_node= node_hit
-		else:
-			self.graph.add_node(Node(len(self.graph.nodes), event.x, event.y))
+		if not node_hit:
+			self.nodes.append(Node(event.x, event.y))
 		self.canvas_redraw()
 
 	def mb_right(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
-		# if node_hit:
-		# 	if node_hit is self.selected_node:
-		# 		self.selected_node= None
-		# 	else:
-		# 		self.graph.remove_node(node_hit)
-		# else:
-		# 	self.selected_node= None
-
-		if node_hit and node_hit is not self.selected_node:
-			self.graph.remove_node(node_hit)
-		else:
-			self.selected_node= None
-		
+		if node_hit:
+			self.nodes.remove(node_hit)
 		self.canvas_redraw()
-
-	# def weight_valid(self):
-	# 	return self.input_weight.get().isdigit()
 
 	def _get_mouse_collision(self, x, y):
 		hit= None
 		min_dist= float('inf')
 
-		for node in self.graph.nodes():
-			dist= abs(node.x-x)+abs(node.y-y)
-			if dist<min_dist and dist<=node.radius:
+		for node in self.nodes:
+			dist= np.sqrt((node.x-x)**2+(node.y-y)**2)
+			if dist<min_dist and dist<=node.radius*2:
 				min_dist= dist
 				hit= node
 		return hit
 
 	def run(self):
-		if len(self.graph.nodes)<2:
+		if len(self.nodes)<2:
 			messagebox.showerror('Error', 'Add at least two nodes to run TSP.')
 			return
-		messagebox.showinfo('TSP', 'Algorithm not implemented yet.')#TODO: Implement TSP algorithm
+		
+		colony= HybridACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+			# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
+			lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
+		)
+
+		ITERATIONS=	10
+		ga_interval=	10
+		loss= [0.0]*ITERATIONS
+		t0= time.time()
+		for iteration in range(ITERATIONS):
+			colony.update()
+
+			if iteration%ga_interval==0 and iteration!=0:
+				children_tours= generate_children(colony.get_best(10), num_children=10, mutation_rate=0.1)
+				colony.replace_worst(children_tours)
+			
+			#TODO: intuitive animation system
+
+			best= colony.get_best()[0]
+			print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
+			loss[iteration]= best.cost
+
+		dt= time.time()-t0
+
+		best= colony.get_best()[0]
+		print(f'Best Tour: {[self.nodes[i].id for i in range(len(best.tour))]}')
+		print(f'Best Distance: {best.cost} km')
+		print(f'Algorithm Time Taken: {dt} seconds')
+
+		#REDRAW
+		self.canvas.delete('all')
+		for i in range(len(best.tour)-1):
+			self.canvas.create_line(self.nodes[i].x, self.nodes[i].y, self.nodes[i+1].x, self.nodes[i+1].y, fill='red', width=2)
+		for node in self.nodes:
+			node.draw(self.canvas)
 
 	def canvas_clear(self):
-		# Node.obj_count = 0
-		self.selected_node = None
-		for node in self.initial_nodes:
-			self.remove_initial_entry_textbox(node)
-		self.initial_nodes = []
+		Node.obj_count = 0
 		self.canvas.delete('all')
-		self.graph.clear()
+		self.nodes.clear()
 
 	def canvas_redraw(self):
 		self.canvas.delete('all')
-		# for edge in self.graph.edges:	#draw edges
-		# 	n1, n2= edge
-		# 	self.canvas.create_line(n1.x, n1.y, n2.x, n2.y, fill='black')
-		# 	self.canvas.create_text((n1.x+n2.x)/2 - 5, (n1.y+n2.y)/2 - 5, text=str(self.graph.edges[n1,n2]['weight']))
-
-		for node in self.graph.nodes:	#draw nodes
+		for node in self.nodes:
 			node.draw(self.canvas)
 
-		# selection rendering is separate from all other node rendering to separate UI interaction from any graph animation
-		if self.selected_node:		#if there's selected node, highlight it
-			self.canvas.create_oval(self.selected_node.x-self.selected_node.radius, self.selected_node.y-self.selected_node.radius, #top left
-			   			self.selected_node.x+self.selected_node.radius, self.selected_node.y+self.selected_node.radius, #bottom right
-						outline='red', width=2, fill=self.selected_node.color)
-			# self.canvas.create_text(self.selected_node.x,             self.selected_node.y, text=str(self.selected_node.id), fill='black')
-
-if __name__=='__main__':
+def main():
 	root= tk.Tk()
 	app= MainApp(root)
 	root.mainloop()
+
+if __name__=='__main__':
+	main()
