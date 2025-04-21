@@ -19,7 +19,7 @@ class Ant:
 class HybridACO:
 	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2):
 		self.cities=		cities[:]
-		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't pass 2 cities as arguments?
+		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't have 2 cities as parameters?
 		self.ants=		[Ant() for _ in range(num_ants)]
 		self.pheromones=	np.ones((len(cities), len(cities)))*init_pheromone
 		self.eva_rate=		evaporation_rate
@@ -34,7 +34,7 @@ class HybridACO:
 			unvisited= list(range(len(self.cities)))
 			prob= [1/len(unvisited) for _ in range(len(unvisited))]
 			while unvisited:
-				city= np.random.choice(unvisited, p=prob) #TODO find a way to seed!!!
+				city= np.random.choice(unvisited, p=prob) #TODO find a way to seed this!!!
 				ant.tour.append(city)
 				unvisited.remove(city)
 
@@ -49,7 +49,7 @@ class HybridACO:
 			for i in range(len(ant.tour)-1):
 				ant.cost+= self.objfunc(self.cities[ant.tour[i]], self.cities[ant.tour[i+1]])
 		
-		self.pheromones*= (1-self.eva_rate) #TODO: update pheromones only after all ants have explored vs after each individual ant exploration
+		self.pheromones*= (1-self.eva_rate) #TODO: which is better? update pheromones only after all ants have explored vs after each individual ant exploration
 		for ant in self.ants:
 			for i in range(len(ant.tour)-1):
 				src= ant.tour[i]
@@ -109,7 +109,7 @@ def generate_children(top_ants, num_children, mutation_rate=0.1):
 			children.append(child_tour)
 	return children
 
-def main(seed=42):
+def main(seed=None):
 	'''Example program that uses HybridACO Algorithm'''
 	#Config of Problem   (Application Side)
 	random.seed(seed)
@@ -125,7 +125,7 @@ def main(seed=42):
 	#Main Loop
 	ITERATIONS=	10
 	ga_interval=	10
-	fitness= [0]*ITERATIONS
+	loss= [0.0]*ITERATIONS
 	t0= time.time()
 	for iteration in range(ITERATIONS):
 		colony.update()
@@ -136,13 +136,13 @@ def main(seed=42):
 
 		best= colony.get_best()[0]
 		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
-		fitness[iteration]= best.cost
+		loss[iteration]= best.cost
 
 	dt= time.time()-t0
 
 	best= colony.get_best()[0]
 	print(f'Best Tour: {[int(city) for city in best.tour]}')
-	print(f'Best Distance: {best.cost}')
+	print(f'Best Distance: {best.cost} km')
 	print(f'Algorithm Time Taken: {dt} seconds')
 
 	x= [cities[i].x for i in best.tour]+[cities[best.tour[0]].x]
@@ -155,12 +155,12 @@ def main(seed=42):
 	plt.ylabel('Y')
 
 	plt.subplot(1, 2, 2)
-	plt.plot(range(ITERATIONS), fitness, 'b-')
-	plt.title('Fitness Over Iterations')
+	plt.plot(range(ITERATIONS), loss, 'b-')
+	plt.title('Total Distance Over Iterations')
 	plt.xlabel('Iteration')
 	plt.ylabel('Total Distance')
 	plt.tight_layout()
 	plt.show()
 
 if __name__=='__main__':
-	main()
+	main(seed=42)
