@@ -1,7 +1,9 @@
-from   tkinter import messagebox
-import tkinter as tk
+# from   tkinter import messagebox, ttk
+# import tkinter as tk
+from tkinter     import *
+from tkinter.ttk import *
 import numpy as np
-import time
+import time, random
 from aco_hybrid import HybridACO, generate_children
 
 class Node:
@@ -13,61 +15,68 @@ class Node:
 		self.y=      y
 		self.color=  'white'
 		# self.data=   None
-		self.radius= 10
+		self.radius= 5
 
-	def draw(self, canvas):
+	def draw(self, canvas:Canvas):
 		canvas.create_oval(self.x-self.radius, self.y-self.radius, self.x+self.radius, self.y+self.radius, fill=self.color)
-		canvas.create_text(self.x,             self.y, text=str(self.id), fill='black')
+		canvas.create_text(self.x,             self.y+self.radius*2.5, text=str(self.id), fill='black')
 
 class MainApp:
 	def __init__(self, root):
 		self.root= root
 		self.root.title('TSP Solver')
 
-		np.random.seed(time.localtime().tm_sec) #TODO: make this a seedable random number generator
-		self.nodes:list[Node]= self.rand_points(20, (0, 600), (0, 400))
+		# np.random.seed(time.localtime().tm_sec) #TODO: make this a seedable random number generator
+		random.seed(42) #TODO
+		self.nodes:list[Node]= [self.rand_point((0, 600), (5, 300)) for _ in range(20)]
 		# self.lines:list[tuple[int, int]]= []
 
 		# Create UI components
-		self.canvas= tk.Canvas(root, width=600, height=400, bg='white')
-		self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+		self.style= Style()
+		self.style.theme_use('clam')
+		# print(self.style.theme_names())
+
+		self.canvas= Canvas(root, width=600, height=400, bg='white')
+		self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
+		self.canvas.grid_rowconfigure(100)
+		self.canvas.grid_columnconfigure(100)
+		self.canvas.grid(column=10, row=10)
+		
+		print(self.canvas.grid_size())
 
-		self.control_frame= tk.Frame(root)
-		self.control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10)
+		# self.control_frame= Frame(root)
+		# self.control_frame.pack(side=RIGHT, fill=Y, padx=10)
 
-		self.button_run= tk.Button(self.control_frame, text='Run', command=self.run)
-		self.button_run.pack(pady=10)
-		self.button_clear= tk.Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
-		self.button_clear.pack(pady=10)
-		self.button_rand_point= tk.Button(self.control_frame, text='Random Point', command=self.rand_point)
-		self.button_rand_point.pack(pady=10)
+		# self.button_run= Button(self.control_frame, text='Run', command=self.run)
+		# self.button_run.pack(pady=10)
+		# self.button_clear= Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
+		# self.button_clear.pack(pady=10)
+		# self.button_rand_point= Button(self.control_frame, text='Random Point', command=self.btn_rand_point)
+		# self.button_rand_point.pack(pady=10)
 
-		self.textbox_seed_label= tk.Label(self.control_frame, text='seed')
-		self.textbox_seed_label.pack()
-		self.textbox_seed= tk.Entry(self.control_frame)
-		self.textbox_seed.pack(pady=10)
+		# self.textbox_seed_label= Label(self.control_frame, text='seed')
+		# self.textbox_seed_label.pack()
+		# self.textbox_seed= Entry(self.control_frame)
+		# self.textbox_seed.pack(pady=10)
 		self.canvas_redraw()
 	
 	def reseed(self):
 		seed= self.textbox_seed.get()
 		if seed.isdigit():
-			np.random.seed(int(seed))
+			random.seed(int(seed))
 		else:
-			messagebox.showerror('Error', 'Seed must be a number.')
+			# messagebox.showerror('Error', 'Seed must be a number.')
 			return
 
-	def rand_points(self, num_points, x_range, y_range):
-		x_coords= np.random.uniform(x_range[0], x_range[1], num_points)
-		y_coords= np.random.uniform(y_range[0], y_range[1], num_points)
-		nodes= [Node(x, y) for x, y in zip(x_coords, y_coords)]
-		return nodes
-
-	def rand_point(self):#TODO: make a seeded node generation system for consistent results
-		x= np.random.randint(0, self.canvas.winfo_width())
-		y= np.random.randint(0, self.canvas.winfo_height())
-		self.nodes.append(Node(x, y))
+	def rand_point(self, x_range, y_range):#TODO: make sure to get consistent results!
+		x_coord= random.uniform(x_range[0], x_range[1])
+		y_coord= random.uniform(y_range[0], y_range[1])
+		return Node(x_coord, y_coord)
+	
+	def btn_rand_point(self):
+		self.nodes.append(self.rand_point((0, 600), (5, 300)))
 		self.canvas_redraw()
 
 	def mb_left(self, event):
@@ -95,12 +104,12 @@ class MainApp:
 
 	def run(self):
 		if len(self.nodes)<2:
-			messagebox.showerror('Error', 'Add at least two nodes to run TSP.')
 			return
 		
 		colony= HybridACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 			# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 			lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
+			seed=42,
 		)
 
 		ITERATIONS=	10
@@ -135,9 +144,9 @@ class MainApp:
 			node.draw(self.canvas)
 
 	def canvas_clear(self):
-		Node.obj_count = 0
 		self.canvas.delete('all')
 		self.nodes.clear()
+		Node.obj_count= 0
 
 	def canvas_redraw(self):
 		self.canvas.delete('all')
@@ -145,7 +154,7 @@ class MainApp:
 			node.draw(self.canvas)
 
 def main():
-	root= tk.Tk()
+	root= Tk()
 	app= MainApp(root)
 	root.mainloop()
 
