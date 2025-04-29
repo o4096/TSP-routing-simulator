@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import random
-import time
+import time, random
 
 class City:
 	def __init__(self, x, y):
@@ -17,7 +16,7 @@ class Ant:
 		self.tour= []
 
 class HybridACO:
-	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2):
+	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2, seed=None):
 		self.cities=		cities[:]
 		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't have 2 cities as parameters?
 		self.ants=		[Ant() for _ in range(num_ants)]
@@ -27,6 +26,8 @@ class HybridACO:
 		self.alpha=		alpha
 		self.beta=		beta
 		# self._best_ant= None
+		if seed:
+			random.seed(int(seed))
 
 	def update(self):
 		for ant in self.ants:
@@ -34,7 +35,8 @@ class HybridACO:
 			unvisited= list(range(len(self.cities)))
 			prob= [1/len(unvisited) for _ in range(len(unvisited))]
 			while unvisited:
-				city= np.random.choice(unvisited, p=prob) #TODO find a way to seed this!!!
+				city= random.choices(unvisited, prob)[0]
+				# city= np.random.choice(unvisited, p=prob) #TODO find a way to seed this!!!
 				ant.tour.append(city)
 				unvisited.remove(city)
 
