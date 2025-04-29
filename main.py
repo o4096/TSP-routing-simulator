@@ -122,6 +122,38 @@ class MainApp:
 
 		dt= time.time()-t0
 
+
+		#animation system
+		animation_delay = 0.05
+		for ant in colony.ants:
+			lines = []
+			prev_i = None
+			for i in ant.tour:
+				#node
+				self.nodes[i].color = 'orange'
+				#edge
+				if prev_i != None:
+					lines.append({"x0":self.nodes[prev_i].x,"y0":self.nodes[prev_i].y,"x1":self.nodes[i].x,"y1":self.nodes[i].y})	
+					#store node to be used as prev
+				prev_i = i
+
+				#redraw
+				self.canvas.delete('all')
+				for line in lines:
+					self.canvas.create_line(line["x0"], line["y0"], line["x1"], line["y1"], fill='orange', width=2)
+				for node in self.nodes:
+					node.draw(self.canvas)
+				self.canvas.update()
+				
+				#delay
+				time.sleep(animation_delay)
+			#clear for next ant tour
+			for node in self.nodes:
+				if node.color == "orange":
+					node.color="white" 
+			self.canvas_redraw()
+
+
 		best= colony.get_best()[0]
 		print(f'Best Tour: {[self.nodes[i].id for i in range(len(best.tour))]}')
 		print(f'Best Distance: {best.cost} km')
