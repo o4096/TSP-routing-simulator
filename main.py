@@ -2,6 +2,7 @@
 # import tkinter as tk
 from tkinter     import *
 from tkinter.ttk import *
+from tkinter import messagebox
 import numpy as np
 import time, random
 from aco_hybrid import HybridACO, generate_children
@@ -26,6 +27,7 @@ class MainApp:
 		self.root= root
 		self.root.title('TSP Solver')
 		self.seed = time.time_ns()
+		self.nodes = []
 		# Create UI components
 		self.style= Style()
 		# self.style.theme_use('clam')
@@ -34,12 +36,14 @@ class MainApp:
 		self.control_frame= Frame(root)
 		self.button_run= Button(self.control_frame, text='Run', command=self.run)
 		self.button_clear= Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
+		self.button_rand_generation= Button(self.control_frame, text='Generate Graph', command=self.btn_rand_graph)
 		self.button_rand_point= Button(self.control_frame, text='Random Point', command=self.btn_rand_point)
 		self.textbox_seed_label= Label(self.control_frame, text='seed')
 		self.seed_label_value = Variable(value=str(self.seed))
 		self.textbox_seed= Entry(self.control_frame, textvariable=self.seed_label_value)
-		self.nodes:list[Node]= [self.rand_point([self.canvas.winfo_x() + 20, self.canvas.winfo_reqwidth() - 20],
-										   [self.canvas.winfo_y() + 20, self.canvas.winfo_reqheight() - 20]) for _ in range(20)]
+		self.textbox_node_label= Label(self.control_frame, text='inital number of nodes\n(may add more nodes after generation)', justify=CENTER)
+		self.node_label_value = Variable(value=str(20))
+		self.textbox_node= Entry(self.control_frame, textvariable=self.node_label_value)
 		
 		# self.lines:list[tuple[int, int]]= []
 
@@ -48,27 +52,29 @@ class MainApp:
 		self.canvas.grid(column=10, row=10)
 		print(self.canvas.grid_size())
 
-		self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+		self.canvas.pack(side=LEFT)
 		self.control_frame.pack(fill='y', padx=10)
 		self.button_run.pack(pady=10)
 		self.button_clear.pack(pady=10)
+		self.button_rand_generation.pack(pady=10)
 		self.button_rand_point.pack(pady=10)
 		self.textbox_seed_label.pack()
 		self.textbox_seed.pack(pady=10)
+		self.textbox_node_label.pack()
+		self.textbox_node.pack(pady=10)
 
 
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
-
-		self.canvas_redraw()
 	
 	def reseed(self):
-		seed= self.textbox_seed.get()
-		if seed.isdigit():
-			random.seed(int(seed))
+		if self.textbox_seed.get().isdigit():
+			self.seed = self.textbox_seed.get()
+			random.seed(int(self.seed))
+			return True
 		else:
-			# messagebox.showerror('Error', 'Seed must be a number.')
-			return
+			messagebox.showerror('Error', f'Seed must be a number.')
+			return False
 
 	def rand_point(self, x_range, y_range):
 		x_coord= random.uniform(x_range[0], x_range[1])
@@ -79,6 +85,19 @@ class MainApp:
 		self.nodes.append(self.rand_point((self.canvas.winfo_x() + 20, self.canvas.winfo_width() - 20),
 									 (self.canvas.winfo_y() + 20, self.canvas.winfo_height() - 20)))
 		self.canvas_redraw()
+
+	def btn_rand_graph(self):
+		node_length = self.textbox_node.get()
+		if self.reseed():
+			if node_length.isdigit():
+				if len(self.nodes) != 0:
+					self.canvas_clear()
+				self.nodes:list[Node]= [self.rand_point([self.canvas.winfo_x() + 20, self.canvas.winfo_width() - 20],
+											[self.canvas.winfo_y() + 20, self.canvas.winfo_height() - 20]) for _ in range(int(node_length))]
+				self.canvas_redraw()
+			else:
+				messagebox.showerror('Error', 'node length must be a number.')
+				return
 
 	def mb_left(self, event):
 		node_hit= self._get_mouse_collision(event.x, event.y)
@@ -110,7 +129,7 @@ class MainApp:
 		colony= HybridACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 			# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 			lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
-			seed=42,
+			seed=self.seed,
 		)
 
 		ITERATIONS=	10
