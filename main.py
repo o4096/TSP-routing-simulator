@@ -22,47 +22,45 @@ class Node:
 		canvas.create_text(self.x,             self.y+self.radius*2.5, text=str(self.id), fill='black')
 
 class MainApp:
-	def __init__(self, root):
+	def __init__(self, root: Tk):
 		self.root= root
 		self.root.title('TSP Solver')
-
-		# np.random.seed(time.localtime().tm_sec) #TODO: make this a seedable random number generator
-		random.seed(42) #TODO
-		self.nodes:list[Node]= [self.rand_point((0, 600), (5, 300)) for _ in range(20)]
-		# self.lines:list[tuple[int, int]]= []
-
+		self.seed = time.time_ns()
 		# Create UI components
 		self.style= Style()
-		self.style.theme_use('clam')
+		# self.style.theme_use('clam')
 		# print(self.style.theme_names())
-
 		self.canvas= Canvas(root, width=600, height=400, bg='white')
-		self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
-		self.canvas.bind('<Button-1>', self.mb_left)
-		self.canvas.bind('<Button-3>', self.mb_right)
-		# self.bind('<KeyPress-H>', self.run) # DOES NOT WORK FOR SOME REASONE HAD THE RUN FUNCTION CALLED AT THE END OF INIT
+		self.control_frame= Frame(root)
+		self.button_run= Button(self.control_frame, text='Run', command=self.run)
+		self.button_clear= Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
+		self.button_rand_point= Button(self.control_frame, text='Random Point', command=self.btn_rand_point)
+		self.textbox_seed_label= Label(self.control_frame, text='seed')
+		self.seed_label_value = Variable(value=str(self.seed))
+		self.textbox_seed= Entry(self.control_frame, textvariable=self.seed_label_value)
+		self.nodes:list[Node]= [self.rand_point([self.canvas.winfo_x() + 20, self.canvas.winfo_reqwidth() - 20],
+										   [self.canvas.winfo_y() + 20, self.canvas.winfo_reqheight() - 20]) for _ in range(20)]
+		
+		# self.lines:list[tuple[int, int]]= []
+
 		self.canvas.grid_rowconfigure(100)
 		self.canvas.grid_columnconfigure(100)
 		self.canvas.grid(column=10, row=10)
-		
 		print(self.canvas.grid_size())
 
-		# self.control_frame= Frame(root)
-		# self.control_frame.pack(side=RIGHT, fill=Y, padx=10)
+		self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+		self.control_frame.pack(fill='y', padx=10)
+		self.button_run.pack(pady=10)
+		self.button_clear.pack(pady=10)
+		self.button_rand_point.pack(pady=10)
+		self.textbox_seed_label.pack()
+		self.textbox_seed.pack(pady=10)
 
-		# self.button_run= Button(self.control_frame, text='Run', command=self.run)
-		# self.button_run.pack(pady=10)
-		# self.button_clear= Button(self.control_frame, text='Clear Graph', command=self.canvas_clear)
-		# self.button_clear.pack(pady=10)
-		# self.button_rand_point= Button(self.control_frame, text='Random Point', command=self.btn_rand_point)
-		# self.button_rand_point.pack(pady=10)
 
-		# self.textbox_seed_label= Label(self.control_frame, text='seed')
-		# self.textbox_seed_label.pack()
-		# self.textbox_seed= Entry(self.control_frame)
-		# self.textbox_seed.pack(pady=10)
+		self.canvas.bind('<Button-1>', self.mb_left)
+		self.canvas.bind('<Button-3>', self.mb_right)
+
 		self.canvas_redraw()
-		self.run()#TEMPORARY SOLUTION
 	
 	def reseed(self):
 		seed= self.textbox_seed.get()
@@ -72,13 +70,14 @@ class MainApp:
 			# messagebox.showerror('Error', 'Seed must be a number.')
 			return
 
-	def rand_point(self, x_range, y_range):#TODO: make sure to get consistent results!
+	def rand_point(self, x_range, y_range):
 		x_coord= random.uniform(x_range[0], x_range[1])
 		y_coord= random.uniform(y_range[0], y_range[1])
 		return Node(x_coord, y_coord)
 	
 	def btn_rand_point(self):
-		self.nodes.append(self.rand_point((0, 600), (5, 300)))
+		self.nodes.append(self.rand_point((self.canvas.winfo_x() + 20, self.canvas.winfo_width() - 20),
+									 (self.canvas.winfo_y() + 20, self.canvas.winfo_height() - 20)))
 		self.canvas_redraw()
 
 	def mb_left(self, event):
@@ -104,7 +103,7 @@ class MainApp:
 				hit= node
 		return hit
 
-	def run(self):
+	def run(self, event = None):
 		if len(self.nodes)<2:
 			return
 		
