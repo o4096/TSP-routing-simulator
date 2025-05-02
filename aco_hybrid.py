@@ -90,6 +90,7 @@ def order_crossover(parent1, parent2):
 		if city not in child:
 			child[ptr]= city
 			ptr= (ptr+1)%size
+	return child
 
 def mutate(tour, mutation_rate=0.1):
 	tour= tour[:]
@@ -111,10 +112,9 @@ def generate_children(top_ants, num_children, mutation_rate=0.1):
 			children.append(child_tour)
 	return children
 
-def main(seed=None):
+def main():
 	'''Example program that uses HybridACO Algorithm'''
 	#Config of Problem   (Application Side)
-	random.seed(seed)
 	n_cities= 50
 	cities=   [City(random.randint(0, 500), random.randint(0, 500)) for _ in range(n_cities)]
 
@@ -125,7 +125,7 @@ def main(seed=None):
 	)
 
 	#Main Loop
-	ITERATIONS=	10
+	ITERATIONS=	100
 	ga_interval=	10
 	loss= [0.0]*ITERATIONS
 	t0= time.time()
@@ -165,4 +165,4 @@ def main(seed=None):
 	plt.show()
 
 if __name__=='__main__':
-	main(seed=42)
+	main()
