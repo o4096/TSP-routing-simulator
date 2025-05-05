@@ -7,6 +7,7 @@ import numpy as np
 import time, random
 from aco_hybrid import HybridACO, generate_children
 from aco import SystemACO
+from aco_maxmin import MaxMinACO
 
 class Node:
 	obj_count= 0
