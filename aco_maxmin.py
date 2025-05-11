@@ -6,8 +6,8 @@ class City:
         self.x = x
         self.y = y
 
-    def distance(self, other):
-        return np.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
+def distance(self, other):
+    return np.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
     
 
 class Ant:
@@ -30,13 +30,14 @@ class MaxMinACO:
         self.beta = beta
         
         initial_tour = list(range(len(cities)))
-        d = sum(cities[initial_tour[i]].distance(cities[initial_tour[(i+1)%len(self.cities)]]) for i in range(len(self.cities)))
+        # d = sum(cities[initial_tour[i]].distance(cities[initial_tour[(i+1)%len(self.cities)]]) for i in range(len(self.cities)))
+        d = sum( distance(cities[initial_tour[i]], cities[initial_tour[(i+1)%len(self.cities)]]) for i in range(len(self.cities)))
         self.tau_max = 1.0 / (evaporation_rate * d)
         self.pheromones = np.full((len(cities), len(cities)), self.tau_max)
         self.tau_min = self.tau_max / (2 * len(self.cities))
 
         if seed:
-            random.seed(int(seed))
+            random.seed(int(time.time_ns()))
 
     def update(self):
         for ant in self.ants:

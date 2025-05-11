@@ -30,7 +30,7 @@ class SystemACO:
         self.alpha = alpha
         self.beta = beta
         if seed:
-            random.seed(int(seed))
+            random.seed(int(time.time_ns()))
 
     def update(self):
         for ant in self.ants:

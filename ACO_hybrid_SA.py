@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import time, random
+import random
+import time
 
 class City:
 	def __init__(self, x, y):
@@ -15,8 +16,8 @@ class Ant:
 		self.cost= 0.0
 		self.tour= []
 
-class HybridACO:
-	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2, seed=None):
+class Hybrid_SA_ACO:
+	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2 , seed=None):
 		self.cities=		cities[:]
 		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't have 2 cities as parameters?
 		self.ants=		[Ant() for _ in range(num_ants)]
@@ -25,9 +26,9 @@ class HybridACO:
 		self.Q=			Q	#TODO: should this be parameterized?
 		self.alpha=		alpha
 		self.beta=		beta
-		# self._best_ant= None
 		if seed:
-			random.seed(int(seed))
+			random.seed(int(time.time_ns()))
+		# self._best_ant= None
 
 	def update(self):
 		for ant in self.ants:
@@ -36,7 +37,6 @@ class HybridACO:
 			prob= [1/len(unvisited) for _ in range(len(unvisited))]
 			while unvisited:
 				city= random.choices(unvisited, prob)[0]
-				# city= np.random.choice(unvisited, p=prob) #TODO find a way to seed this!!!
 				ant.tour.append(city)
 				unvisited.remove(city)
 
@@ -70,75 +70,66 @@ class HybridACO:
 	# def get_best(self):
 	# 	return self._best_ant
 
-	def replace_worst(self, children_tours):
-		self.ants.sort(key=lambda a: a.cost, reverse=True)
-		for i in range(len(children_tours)):
-			new_ant= Ant()
-			new_ant.tour= children_tours[i]
-			new_ant.cost= sum(self.objfunc(self.cities[new_ant.tour[i]], self.cities[new_ant.tour[i+1]]) for i in range(len(new_ant.tour)-1))
-			self.ants[-(i+1)]= new_ant
 
-def order_crossover(parent1, parent2):
-	size = len(parent1)
-	start, end= sorted(random.sample(range(size), 2))
 
-	child= [-1]*size
-	child[start:end+1]= parent1[start:end+1]
+def simulated_annealing(tour, cities, objfunc, T_start=1000, T_end=1, alpha=0.995, max_iter=100):
+	def tour_cost(tour):
+		return sum(objfunc(cities[tour[i]], cities[tour[i+1]]) for i in range(len(tour)-1))
 
-	ptr= (end+1)%size
-	for city in parent2:
-		if city not in child:
-			child[ptr]= city
-			ptr= (ptr+1)%size
-	return child
+	current = tour[:]
+	current_cost = tour_cost(current)
+	best = current[:]
+	best_cost = current_cost
+	T = T_start
 
-def mutate(tour, mutation_rate=0.1):
-	tour= tour[:]
-	if random.random() < mutation_rate:
-		i , j= random.sample(range(len(tour)), 2)
-		tour[i], tour[j]= tour[j], tour[i]
-	return tour
+	while T > T_end:
+		i, j = random.sample(range(len(current)), 2)
+		neighbor = current[:]
+		neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
 
-def generate_children(top_ants, num_children, mutation_rate=0.1):
-	children= []
+		neighbor_cost = tour_cost(neighbor)
+		delta = neighbor_cost - current_cost
 
-	while len(children)<num_children:
-		parent1= random.choice(top_ants).tour
-		parent2= random.choice(top_ants).tour
+		if delta < 0 or random.random() < np.exp(-delta / T):
+			current = neighbor
+			current_cost = neighbor_cost
+			if current_cost < best_cost:
+				best = current
+				best_cost = current_cost
+		T *= alpha
+	return best, best_cost
 
-		if parent1!=parent2:
-			child_tour= order_crossover(parent1, parent2)
-			child_tour= mutate(child_tour, mutation_rate)
-			children.append(child_tour)
-	return children
-
-def main():
+def main(seed=None):
 	'''Example program that uses HybridACO Algorithm'''
 	#Config of Problem   (Application Side)
+	global_best_cost = float('inf')
+
+	random.seed(seed)
 	n_cities= 50
 	cities=   [City(random.randint(0, 500), random.randint(0, 500)) for _ in range(n_cities)]
 
 	#Config of Algorithm (Passed to Algorithm Class by Application)
-	colony= HybridACO(cities, #TODO: it'll probably be better to pass the graph inside the main loop
-	        # lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
-	        lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
+	colony= Hybrid_SA_ACO(cities, #TODO: it'll probably be better to pass the graph inside the main loop
+			# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
+			lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 	)
 
 	#Main Loop
-	ITERATIONS=	100
-	ga_interval=	10
+	ITERATIONS=	30
 	loss= [0.0]*ITERATIONS
 	t0= time.time()
 	for iteration in range(ITERATIONS):
 		colony.update()
+		# Refine best ant using Simulated Annealing
+		best_ant = colony.get_best()[0]
+		new_tour, new_cost = simulated_annealing(best_ant.tour, colony.cities, colony.objfunc)
+		if new_cost < best_ant.cost:
+			best_ant.tour = new_tour
+			best_ant.cost = new_cost
 
-		if iteration%ga_interval==0 and iteration!=0:
-			children_tours= generate_children(colony.get_best(10), num_children=10, mutation_rate=0.1)
-			colony.replace_worst(children_tours)
-
-		best= colony.get_best()[0]
+		best = colony.get_best()[0]
 		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
-		loss[iteration]= best.cost
+		loss[iteration] = best.cost
 
 	dt= time.time()-t0
 
@@ -165,4 +156,4 @@ def main():
 	plt.show()
 
 if __name__=='__main__':
-	main()
+	main(seed=42)

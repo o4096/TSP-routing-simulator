@@ -5,9 +5,10 @@ from tkinter.ttk import *
 from tkinter import messagebox
 import numpy as np
 import time, random
-from aco_hybrid import HybridACO, generate_children
+from aco_hybrid_genetic import HybridACO, generate_children
 from aco import SystemACO
 from aco_maxmin import MaxMinACO
+from ACO_hybrid_SA import Hybrid_SA_ACO, simulated_annealing
 
 class Node:
 	obj_count= 0
@@ -59,8 +60,8 @@ class MainApp:
 		
 		self.combobox_aco_label = Label(self.control_frame, text= "ACO Algorithm:", justify=CENTER)
 		self.combobox_aco = Combobox(self.control_frame, state='readonly',
-								 values=["Hybrid ACO", "ACO"])
-		self.combobox_aco.set(value="Hybrid ACO")
+								 values=["Genetic", "System", "MaxMin", "Simulated Annealing"])
+		self.combobox_aco.set(value="Genetic")
 		
 		self.combobox_animation_label = Label(self.control_frame, text= "Animation:", justify=CENTER)
 		self.combobox_animation = Combobox(self.control_frame, state='readonly',
@@ -76,28 +77,28 @@ class MainApp:
 									   text=f'Animation Delay: {self.delay_label_value.get()}',
 										 justify=CENTER)
 		self.scale_delay= Scale(self.control_frame, variable=self.delay_label_value,
-								from_= 0.000, to= 0.500, orient="horizontal")
+								from_= 0.000, to= 0.100, orient="horizontal")
 
 		self.alpha_label_value = DoubleVar()
 		self.scale_alpha_label= Label(self.control_frame,
 									   text=f'Alpha: {self.alpha_label_value.get()}',
 										 justify=CENTER)
 		self.scale_alpha= Scale(self.control_frame, variable=self.alpha_label_value,
-								from_= 0.0, to= 10.0, orient="horizontal")
+								from_= 0.0, to= 5.0, orient="horizontal")
 		
 		self.beta_label_value = DoubleVar()
 		self.scale_beta_label= Label(self.control_frame,
 									   text=f'Beta: {self.beta_label_value.get()}',
 										 justify=CENTER)
 		self.scale_beta= Scale(self.control_frame, variable=self.beta_label_value,
-								from_= 0.0, to= 10.0, orient="horizontal")
+								from_= 0.0, to= 5.0, orient="horizontal")
 		
 		self.evap_rate_label_value = DoubleVar()
 		self.scale_evap_rate_label= Label(self.control_frame,
 									   text=f'Evaporation Rate: {self.evap_rate_label_value.get()}',
 										 justify=CENTER)
 		self.scale_evap_rate= Scale(self.control_frame, variable=self.evap_rate_label_value,
-								from_= 0.00, to= 1.00, orient="horizontal")
+								from_= 0.00, to= 0.9, orient="horizontal")
 		
 		# self.textbox_q_label= Label(self.control_frame, text='Q', justify=CENTER)
 		# self.q_label_value = Variable(value=str(100.0))
@@ -236,17 +237,16 @@ class MainApp:
 		if len(self.nodes) < 2 or not(self.iterations_valid()) :
 			return
 
-
-
 		## choose aco algo type
 		history = []
 		ITERATIONS=	int(self.textbox_iterations.get())
 		t0= time.time()
-		if self.combobox_aco.get() == "Hybrid ACO":
+
+
+		if self.combobox_aco.get() == "Genetic":
 			colony= HybridACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
-				seed=self.seed,
 				alpha= self.alpha_label_value.get(),
 				beta= self.beta_label_value.get(),
 				evaporation_rate= self.evap_rate_label_value.get()
@@ -263,16 +263,14 @@ class MainApp:
 				print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
 
-		elif self.combobox_aco.get() == "ACO":
+		elif self.combobox_aco.get() == "System":
 			colony= SystemACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
-				seed=self.seed,
 				alpha= self.alpha_label_value.get(),
 				beta= self.beta_label_value.get(),
 				evaporation_rate= self.evap_rate_label_value.get()
 			)
-
 			loss=[0.0]*ITERATIONS
 			for iteration in range(ITERATIONS):
 				colony.update()
@@ -281,6 +279,39 @@ class MainApp:
 				print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
 
+		elif self.combobox_aco.get() == "MaxMin":
+			colony= MaxMinACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
+				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
+				alpha= self.alpha_label_value.get(),
+				beta= self.beta_label_value.get(),
+				evaporation_rate= self.evap_rate_label_value.get()
+			)
+			loss=[0.0]*ITERATIONS
+			for iteration in range(ITERATIONS):
+				colony.update()
+				best= colony.get_best()[0]
+				history.append([ant for ant in colony.ants])
+				print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
+				loss[iteration]= best.cost
+
+		elif self.combobox_aco.get() == "Simulated Annealing":
+			colony= Hybrid_SA_ACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
+				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
+				alpha= self.alpha_label_value.get(),
+				beta= self.beta_label_value.get(),
+				evaporation_rate= self.evap_rate_label_value.get()
+			)
+			for iteration in range(ITERATIONS):
+				colony.update()
+				# Refine best ant using Simulated Annealing
+				best = colony.get_best()[0]
+				history.append([ant for ant in colony.ants])
+				new_tour, new_cost = simulated_annealing(best.tour, colony.cities, colony.objfunc)
+				if new_cost < best.cost:
+					best.tour = new_tour
+					best.cost = new_cost
 		dt= time.time()-t0
 
 		print(f'Best Tour: {[self.nodes[i].id for i in best.tour]}')
