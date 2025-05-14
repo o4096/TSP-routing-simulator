@@ -169,8 +169,15 @@ class MainApp:
 			print(f'[INFO]: No parameters available for {selected}')
 
 	def rand_point(self):
+		# radius 5
 		x_coord= random.randint(20, self.canvas.winfo_width() -40)
-		y_coord= random.randint(20, self.canvas.winfo_height()-40)
+		y_coord= random.randint(20, self.canvas.winfo_height() -40)
+		for i in range(len(self.nodes)):
+			d = np.sqrt((x_coord-self.nodes[i].x)**2+(y_coord-self.nodes[i].y)**2)
+			if d <= 10:
+				x_coord= random.randint(20, self.canvas.winfo_width() -40)
+				y_coord= random.randint(20, self.canvas.winfo_height()-40)
+				i = 0
 		return Node(x_coord, y_coord)
 	
 	def btn_rand_point(self):
@@ -182,10 +189,15 @@ class MainApp:
 		random.seed(self.seed)
 		if len(self.nodes)!=0:
 			self.canvas_clear()
-		self.nodes:list[Node]= [self.rand_point() for _ in range(self.textbox_node.get())]
+		# self.nodes:list[Node]= [self.rand_point() for _ in range(self.textbox_node.get())]
+		for _ in range((self.textbox_node.get())):
+				# if _ == 285:
+					# self.nodes.append(self.rand_point())
+				self.nodes.append(self.rand_point())
 		self.canvas_redraw()
 
 	def mb_left(self, event=None):
+		print(f"x={event.x} y={event.y}")
 		node_hit= self._get_mouse_collision(event.x, event.y)
 		if not node_hit:
 			self.nodes.append(Node(event.x, event.y))
