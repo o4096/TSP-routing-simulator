@@ -81,13 +81,16 @@ class MainApp:
 		self.combobox_aco=       Combobox(self.frame_algolist, state='readonly', values=self.algorithms)
 		self.combobox_aco.set(value=self.algorithms[0])
 
-		self.frame_params=          Frame(self.frame_ctrl)
-		self.label_parameters=      Label(self.frame_params, text='Algorithm Parameters')
-		self.textbox_iter=       IntEntry(self.frame_params, initvalue=30, label='Iterations:')
-		self.textbox_count_ants= IntEntry(self.frame_params, initvalue=50, label='Number of Ants:')
-		self.slider_alpha=         Slider(self.frame_params, 1,   0, 10, 'Pheromone influence (α)')
-		self.slider_beta=          Slider(self.frame_params, 2,   0, 10, 'A priori influence (β)')
-		self.slider_eva=           Slider(self.frame_params, 0.1, 0,  1, 'Pheromone Eva. Rate (ρ)')
+		self.frame_params=            Frame(self.frame_ctrl)
+		self.label_parameters=        Label(self.frame_params, text='Algorithm Parameters')
+		self.textbox_iter=         IntEntry(self.frame_params, initvalue=30, label='Iterations:')
+		self.textbox_count_ants=   IntEntry(self.frame_params, initvalue=50, label='Number of Ants:')
+		self.slider_alpha=           Slider(self.frame_params,     1, 0,   10, 'Pheromone influence (α)')
+		self.slider_beta=            Slider(self.frame_params,     2, 0,   10, 'A priori influence (β)')
+		self.slider_eva=             Slider(self.frame_params,   0.1, 0,    1, 'Pheromone Eva. Rate (ρ)')
+		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995, 0,    1, 'Temperature Alpha')
+		self.slider_sa_temp_max=     Slider(self.frame_params,  1000, 0, 1000, 'Temperature Max')
+		self.slider_sa_temp_min=     Slider(self.frame_params,     1, 0, 1000, 'Temperature Min')
 
 		self.frame_run=     Frame(self.frame_ctrl)
 		self.slider_delay= Slider(self.frame_run, 0, 0, 1, 'Animation Delay')
@@ -158,13 +161,16 @@ class MainApp:
 			self.slider_alpha.pack()
 			self.slider_beta.pack()
 			self.slider_eva.pack()
+			self.slider_sa_temp_alpha.pack()
+			self.slider_sa_temp_max.pack()
+			self.slider_sa_temp_min.pack()
 		elif selected==self.algorithms[4]: pass #no params
 		else:
 			print(f'[INFO]: No parameters available for {selected}')
 
 	def rand_point(self):
-		x_coord= random.randint(self.canvas.winfo_x()+20, self.canvas.winfo_width() -40)
-		y_coord= random.randint(self.canvas.winfo_y()+20, self.canvas.winfo_height()-40)
+		x_coord= random.randint(20, self.canvas.winfo_width() -40)
+		y_coord= random.randint(20, self.canvas.winfo_height()-40)
 		return Node(x_coord, y_coord)
 	
 	def btn_rand_point(self):
@@ -266,6 +272,10 @@ class MainApp:
 				loss[iteration]= best.cost
 
 		elif self.combobox_aco.get()=='Simulated Annealing':
+			if self.slider_sa_temp_max.get()<self.slider_sa_temp_min.get():
+				messagebox.showerror('ERROR!', 'Minimum temperature must be less than maximum!')
+				return
+
 			colony= HybridACO_SA(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
@@ -278,7 +288,12 @@ class MainApp:
 				colony.update()
 				best= colony.get_best()[0]
 				history.append([ant for ant in colony.ants])
-				new_tour, new_cost= simulated_annealing(best.tour, colony.cities, colony.objfunc)
+				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
+				new_tour, new_cost= simulated_annealing(best.tour, colony.cities, colony.objfunc,
+				                                        T_start=self.slider_sa_temp_max.get(),
+									T_end=  self.slider_sa_temp_min.get(),
+									alpha=  self.slider_sa_temp_alpha.get(),
+				)
 				if new_cost<best.cost:#Refine best ant using Simulated Annealing
 					best.tour= new_tour
 					best.cost= new_cost
