@@ -35,8 +35,8 @@ class MainApp:
 
 		self.seed= time.time_ns()
 		self.nodes= []
-		# self.lines:list[tuple[int, int]]= []
 		self.anim_modes= ['No Animation', 'Best Ants Only', 'All Ants (long)']
+		self.algorithms= ['Genetic', 'System', 'MaxMin', 'Simulated Annealing', 'A*']
 
 		#Create UI components
 		# self.style= Style()
@@ -45,9 +45,6 @@ class MainApp:
 
 		#Variables
 		self.var_animmode= StringVar(value=self.anim_modes[1])
-		# self.var_count_ants= Variable(value=str(50))
-		# self.var_initpher=   Variable(value=str(1.0))
-		# self.var_q=          Variable(value=str(100.0))
 
 		#CONTRUCT MENUBAR
 		mb=      Menu(root)
@@ -69,58 +66,102 @@ class MainApp:
 		root.config(menu=mb)
 
 		#UI Objects
-		self.canvas=                   Canvas(self.root, width=800, height=600, bg='white')
-		self.frame_ctrl=                Frame(self.root)
-		self.button_clear=             Button(self.frame_ctrl, text='Clear Graph',    command=self.canvas_clear)
-		self.button_rand_generation=   Button(self.frame_ctrl, text='Generate Graph', command=self.btn_rand_graph)
-		self.button_rand_point=        Button(self.frame_ctrl, text='Random Point',   command=self.btn_rand_point)
-		self.button_run=               Button(self.frame_ctrl, text='Run',            command=self.run)
-		self.label_combobox_aco=        Label(self.frame_ctrl, text=f'Algorithm:')
-		# self.label_textbox_count_ants=  Label(self.frame_ctrl, text='number of ants')
-		# self.label_textbox_pheromone=   Label(self.frame_ctrl, text='pheromones')
-		# self.label_textbox_q=           Label(self.frame_ctrl, text='Q')
-		self.textbox_seed=           IntEntry(self.frame_ctrl, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
-		self.textbox_node=           IntEntry(self.frame_ctrl, initvalue=10,        label='Nodes:')
-		self.textbox_iter=           IntEntry(self.frame_ctrl, initvalue=30,        label='Iterations:')
-		# self.textbox_count_ants=        Entry(self.frame_ctrl, textvariable=self.var_count_ants)
-		# self.textbox_pheromone=         Entry(self.frame_ctrl, textvariable=self.var_initpher)
-		# self.textbox_q=                 Entry(self.frame_ctrl, textvariable=self.var_q)
-		self.combobox_aco= Combobox(self.frame_ctrl, state='readonly', values=['Genetic', 'System', 'MaxMin', 'Simulated Annealing', 'A*'])
-		self.combobox_aco.set(value='Genetic')
+		self.canvas=     Canvas(self.root, width=800, height=600, bg='white')
+		self.frame_ctrl=  Frame(self.root)#control panel
 
-		self.frame_params=      Frame(self.frame_ctrl)
-		self.label_parameters=  Label(self.frame_params, text='Algorithm Parameters')
-		self.slider_alpha=     Slider(self.frame_params, 1,   0, 10, 'Pheromone influence (α)')
-		self.slider_beta=      Slider(self.frame_params, 2,   0, 10, 'A priori influence (β)')
-		self.slider_eva=       Slider(self.frame_params, 0.1, 0, 1,  'Pheromone Eva. Rate (ρ)')
-		self.slider_delay=     Slider(self.frame_params, 0,   0, 1,  'Animation Delay')
+		self.frame_graphconfig=         Frame(self.frame_ctrl)
+		self.button_clear=             Button(self.frame_graphconfig, text='Clear Graph',  command=self.canvas_clear)
+		self.button_rand_generation=   Button(self.frame_graphconfig, text='Random Graph', command=self.btn_rand_graph)
+		self.button_rand_point=        Button(self.frame_graphconfig, text='Random Point', command=self.btn_rand_point)
+		self.textbox_node=           IntEntry(self.frame_graphconfig, initvalue=10,        label='Nodes:')
+		self.textbox_seed=           IntEntry(self.frame_graphconfig, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
+
+		self.frame_algolist=        Frame(self.frame_ctrl)
+		self.label_combobox_aco=    Label(self.frame_algolist, text='Algorithm:')
+		self.combobox_aco=       Combobox(self.frame_algolist, state='readonly', values=self.algorithms)
+		self.combobox_aco.set(value=self.algorithms[0])
+
+		self.frame_params=          Frame(self.frame_ctrl)
+		self.label_parameters=      Label(self.frame_params, text='Algorithm Parameters')
+		self.textbox_iter=       IntEntry(self.frame_params, initvalue=30, label='Iterations:')
+		self.textbox_count_ants= IntEntry(self.frame_params, initvalue=50, label='Number of Ants:')
+		self.slider_alpha=         Slider(self.frame_params, 1,   0, 10, 'Pheromone influence (α)')
+		self.slider_beta=          Slider(self.frame_params, 2,   0, 10, 'A priori influence (β)')
+		self.slider_eva=           Slider(self.frame_params, 0.1, 0,  1, 'Pheromone Eva. Rate (ρ)')
+
+		self.frame_run=     Frame(self.frame_ctrl)
+		self.slider_delay= Slider(self.frame_run, 0, 0, 1, 'Animation Delay')
+		self.button_run=   Button(self.frame_run, text='Run', command=self.run)
 		
 		#UI packing
 		self.canvas.pack(side=RIGHT, expand=1)#TODO: find a way to resize all elements proportionally
 		self.frame_ctrl.pack(fill=Y, padx=20)
-		self.button_clear.pack(pady=10)
-		self.button_rand_generation.pack(pady=10)
-		self.button_rand_point.pack(pady=10)
-		self.label_combobox_aco.pack()
-		self.combobox_aco.pack(pady=10)
 
-		self.textbox_seed.pack()
+		self.frame_graphconfig.pack(fill=Y, pady=20)
+		self.button_clear.pack()
+		self.button_rand_generation.pack()
+		self.button_rand_point.pack()
 		self.textbox_node.pack()
-		self.textbox_iter.pack()
+		self.textbox_seed.pack()
 
-		self.frame_params.pack(pady=10)
-		self.label_parameters.pack()
-		self.slider_alpha.pack()
-		self.slider_beta.pack()
-		self.slider_eva.pack()
+		self.frame_algolist.pack()
+		self.label_combobox_aco.pack()
+		self.combobox_aco.pack()
 
+		self.frame_run.pack(side=BOTTOM, anchor=S)
 		self.slider_delay.pack()
 		self.button_run.pack(side=BOTTOM, anchor=S)
 
 		#Bindings
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
+		self.combobox_aco.bind("<<ComboboxSelected>>", self.algo_selected)
+		self.algo_selected()
 	
+	def algo_selected(self, event=None):
+		selected= self.combobox_aco.get()
+		for widget in self.frame_params.winfo_children():#clear current param widgets
+			widget.pack_forget()
+
+		if   selected==self.algorithms[0]:#ACO w/Genetic Algorithms
+			#TODO might separate algorithm seed from graph generation
+			self.frame_params.pack(pady=10)
+			self.label_parameters.pack()
+			self.textbox_iter.pack()
+			self.textbox_count_ants.pack()
+			self.slider_alpha.pack()
+			self.slider_beta.pack()
+			self.slider_eva.pack()
+			#TODO: ga_interval
+		elif selected==self.algorithms[1]:#ACO system
+			self.frame_params.pack(pady=10)
+			self.label_parameters.pack()
+			self.textbox_iter.pack()
+			self.textbox_count_ants.pack()
+			self.slider_alpha.pack()
+			self.slider_beta.pack()
+			self.slider_eva.pack()
+		elif selected==self.algorithms[2]:#ACO w/MaxMin
+			self.frame_params.pack(pady=10)
+			self.label_parameters.pack()
+			self.textbox_iter.pack()
+			self.textbox_count_ants.pack()
+			self.slider_alpha.pack()
+			self.slider_beta.pack()
+			self.slider_eva.pack()
+			#TODO: add tau_max, tau_min
+		elif selected==self.algorithms[3]:#ACO w/Simulated Annealing
+			self.frame_params.pack(pady=10)
+			self.label_parameters.pack()
+			self.textbox_iter.pack()
+			self.textbox_count_ants.pack()
+			self.slider_alpha.pack()
+			self.slider_beta.pack()
+			self.slider_eva.pack()
+		elif selected==self.algorithms[4]: pass #no params
+		else:
+			print(f'[INFO]: No parameters available for {selected}')
+
 	def rand_point(self):
 		x_coord= random.randint(self.canvas.winfo_x()+20, self.canvas.winfo_width() -40)
 		y_coord= random.randint(self.canvas.winfo_y()+20, self.canvas.winfo_height()-40)
@@ -128,7 +169,6 @@ class MainApp:
 	
 	def btn_rand_point(self):
 		self.nodes.append(self.rand_point())
-		# self.nodes= self.tsp.get_cities()#TODO: what was this?
 		self.canvas_redraw()
 
 	def btn_rand_graph(self):
@@ -177,6 +217,7 @@ class MainApp:
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				num_ants=         self.textbox_count_ants.get(),
 			)
 			ga_interval= 2
 			loss= [0.0]*count_iter
@@ -197,6 +238,7 @@ class MainApp:
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				num_ants=         self.textbox_count_ants.get(),
 			)
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
@@ -213,6 +255,7 @@ class MainApp:
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				num_ants=         self.textbox_count_ants.get(),
 			)
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
@@ -229,6 +272,7 @@ class MainApp:
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				num_ants=         self.textbox_count_ants.get(),
 			)
 			for iteration in range(count_iter):
 				colony.update()
@@ -279,7 +323,7 @@ class MainApp:
 						#clear for the next iteration
 						for node in self.nodes:
 							if node.color=='orange':
-								node.color= 'white' 
+								node.color= 'white'
 						self.canvas_redraw()
 				elif self.var_animmode.get()==self.anim_modes[2]:#ALL ANTS
 					for ant in iteration:
@@ -306,7 +350,6 @@ class MainApp:
 								if node.color=='orange':
 									node.color= 'white' 
 							self.canvas_redraw()
-
 		#DRAW RESULT
 		self.canvas.delete('all')
 		for i in range(len(best.tour)-1):

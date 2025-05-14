@@ -13,12 +13,21 @@ class Slider:
 		self.slider.bind('<B1-Motion>', lambda e: self.label_value.config(text=f'{self.value.get():.3f}'))
 
 	def pack(self):
-		'''packs and renders element'''
+		'''packs and renders UI element'''
 		self.frame.pack(anchor=E, fill=X)
 		self.label_name.pack(side=LEFT, anchor=E, fill=X)
 		self.label_value.pack(side=RIGHT, anchor=W, fill=X)
 		self.slider.pack(side=RIGHT)
 		# self.slider.pack(side=RIGHT, fill=BOTH, expand=1)
+	
+	def pack_forget(self):
+		'''hides UI element'''
+		self.frame.pack_forget()
+		self.label_name.pack_forget()
+		self.label_value.pack_forget()
+		self.slider.pack_forget()
+		# self.slider.pack_forget()
+
 
 	def get(self):
 		return self.value.get()
@@ -43,7 +52,7 @@ class IntEntry:
 		self.entry.bind('<MouseWheel>', self._mouse_wheel)
 
 	def pack(self):
-		'''packs and renders element'''
+		'''packs and renders UI element'''
 		self.frame.pack(anchor=E, fill=X)
 		self.label.pack(side=LEFT, anchor=W, fill=X)
 		if self._includes_buttons:
@@ -54,6 +63,15 @@ class IntEntry:
 		# self.entry.grid(row=0,  column=1)
 		# self.btn_up.grid(row=0, column=2)
 		# self.btn_dn.grid(row=0, column=3)
+
+	def pack_forget(self):
+		'''hides UI element'''
+		self.frame.pack_forget()
+		self.label.pack_forget()
+		if self._includes_buttons:
+			self.btn_dn.pack_forget()
+			self.btn_up.pack_forget()
+		self.entry.pack_forget()
 
 	def get(self):
 		'''Get current textbox value'''
