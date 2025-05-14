@@ -6,13 +6,24 @@ import time, random
 import numpy as np
 
 #Evolutionary Algorithms
-from aco           import SystemACO
-from aco_maxmin    import MaxMinACO
-from aco_hybrid_ga import HybridACO_GA, generate_children
-from aco_hybrid_sa import HybridACO_SA, simulated_annealing
+from aco             import SystemACO
+from aco_maxmin      import MaxMinACO
+from aco_hybrid_ga   import HybridACO_GA, generate_children
+from aco_hybrid_sa   import HybridACO_SA, simulated_annealing
+from aco_distributed import DistributedACO
 
 #Deterministic Algorithms (in case we need to validate optimal solution)
 from astar import a_star_tsp
+
+ANIM_DISABLED= 'No Animation'
+ANIM_BEST=     'Animate Best Ants'
+ANIM_ALL=      'Animate All Ants (long)'
+
+ALGO_ACO_SYSTEM=    'ACO System'
+ALGO_ACO_MAXMIN=    'ACO MaxMin'
+ALGO_ACO_HYBRID_GA= 'ACO Genetics'
+ALGO_ACO_HYBRID_SA= 'ACO Simulated Annealing'
+ALGO_ASTAR=         'A* Search (deterministic)'
 
 class Node:
 	obj_count= 0
@@ -35,8 +46,14 @@ class MainApp:
 
 		self.seed= time.time_ns()
 		self.nodes= []
-		self.anim_modes= ['No Animation', 'Best Ants Only', 'All Ants (long)']
-		self.algorithms= ['Genetic', 'System', 'MaxMin', 'Simulated Annealing', 'A*']
+		self.anim_modes= [ANIM_DISABLED, ANIM_BEST, ANIM_ALL]
+		self.algorithms= [
+			ALGO_ACO_SYSTEM,
+			ALGO_ACO_MAXMIN,
+			ALGO_ACO_HYBRID_GA,
+			ALGO_ACO_HYBRID_SA,
+			ALGO_ASTAR,
+		]
 
 		#Create UI components
 		# self.style= Style()
@@ -44,23 +61,23 @@ class MainApp:
 		# print(self.style.theme_names())
 
 		#Variables
-		self.var_animmode= StringVar(value=self.anim_modes[1])
+		self.var_animmode= StringVar(value=ANIM_BEST)
 
 		#CONTRUCT MENUBAR
 		mb=      Menu(root)
 		mb_file= Menu(mb, tearoff=0)
 		mb_anim= Menu(mb, tearoff=0)
 		mb_help= Menu(mb, tearoff=0)
-		
+
 		mb_file.add_command(label='Open...', command=None)
 		mb_file.add_command(label='Save',    command=None);	mb_file.add_separator()
 		mb_file.add_command(label='Exit',    command=root.destroy)
-		mb.add_cascade(label='File', menu=mb_file) 
-		
+		mb.add_cascade(label='File', menu=mb_file)
+
 		for anim in self.anim_modes:
 			mb_anim.add_radiobutton(label=anim, variable=self.var_animmode, value=anim)
 		mb.add_cascade(label='Animation', menu=mb_anim)
-		
+
 		mb_help.add_command(label='About', command=lambda:messagebox.showinfo('About', 'Evolutionary Algorithms Project\nHelwan University 2025'))
 		mb.add_cascade(label='Help', menu=mb_help)
 		root.config(menu=mb)
@@ -74,7 +91,7 @@ class MainApp:
 		self.button_rand_generation=   Button(self.frame_graphconfig, text='Random Graph', command=self.btn_rand_graph)
 		self.button_rand_point=        Button(self.frame_graphconfig, text='Random Point', command=self.btn_rand_point)
 		self.textbox_node=           IntEntry(self.frame_graphconfig, initvalue=10,        label='Nodes:')
-		self.textbox_seed=           IntEntry(self.frame_graphconfig, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
+		self.textbox_seed_gen=       IntEntry(self.frame_graphconfig, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
 
 		self.frame_algolist=        Frame(self.frame_ctrl)
 		self.label_combobox_aco=    Label(self.frame_algolist, text='Algorithm:')
@@ -83,19 +100,21 @@ class MainApp:
 
 		self.frame_params=            Frame(self.frame_ctrl)
 		self.label_parameters=        Label(self.frame_params, text='Algorithm Parameters')
-		self.textbox_iter=         IntEntry(self.frame_params, initvalue=30, label='Iterations:')
-		self.textbox_count_ants=   IntEntry(self.frame_params, initvalue=50, label='Number of Ants:')
+		self.textbox_seed_algo=    IntEntry(self.frame_params, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
+		self.textbox_iter=         IntEntry(self.frame_params, initvalue=30,        label='Iterations:')
+		self.textbox_count_ants=   IntEntry(self.frame_params, initvalue=50,        label='Number of Ants:')
+		self.textbox_ga_interval=  IntEntry(self.frame_params, initvalue=10,        label='Genetics Interval:')
 		self.slider_alpha=           Slider(self.frame_params,     1, 0,   10, 'Pheromone influence (α)')
 		self.slider_beta=            Slider(self.frame_params,     2, 0,   10, 'A priori influence (β)')
-		self.slider_eva=             Slider(self.frame_params,   0.1, 0,    .999, 'Pheromone Eva. Rate (ρ)')
-		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995, 0,    1, 'Temperature Alpha')
-		self.slider_sa_temp_max=     Slider(self.frame_params,  1000, 0, 1000, 'Temperature Max')
-		self.slider_sa_temp_min=     Slider(self.frame_params,     1, 0, 1000, 'Temperature Min')
+		self.slider_eva=             Slider(self.frame_params,   0.1, 0, .999, 'Pheromone Eva. Rate (ρ)')
+		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995, 0,    1, 'Cooling Rate (α)')
+		self.slider_sa_temp_max=     Slider(self.frame_params,  1000, 0, 1000, 'Temperature Start')
+		self.slider_sa_temp_min=     Slider(self.frame_params,     1, 0, 1000, 'Temperature End')
 
 		self.frame_run=     Frame(self.frame_ctrl)
 		self.slider_delay= Slider(self.frame_run, 0, 0, 1, 'Animation Delay')
 		self.button_run=   Button(self.frame_run, text='Run', command=self.run)
-		
+
 		#UI packing
 		self.canvas.pack(side=RIGHT, expand=1)#TODO: find a way to resize all elements proportionally
 		self.frame_ctrl.pack(fill=Y, padx=20)
@@ -105,7 +124,7 @@ class MainApp:
 		self.button_rand_generation.pack()
 		self.button_rand_point.pack()
 		self.textbox_node.pack()
-		self.textbox_seed.pack()
+		self.textbox_seed_gen.pack()
 
 		self.frame_algolist.pack()
 		self.label_combobox_aco.pack()
@@ -120,51 +139,34 @@ class MainApp:
 		self.canvas.bind('<Button-3>', self.mb_right)
 		self.combobox_aco.bind("<<ComboboxSelected>>", self.algo_selected)
 		self.algo_selected()
-	
+
 	def algo_selected(self, event=None):
 		selected= self.combobox_aco.get()
 		for widget in self.frame_params.winfo_children():#clear current param widgets
 			widget.pack_forget()
 
-		if   selected==self.algorithms[0]:#ACO w/Genetic Algorithms
+		def _show_aco_params(self):
+			self.frame_params.pack(pady=10)
+			self.label_parameters.pack()
+		
+			self.textbox_iter.pack()
+			self.textbox_count_ants.pack()
+			self.slider_alpha.pack()
+			self.slider_beta.pack()
+			self.slider_eva.pack()
+
+		if   selected==ALGO_ACO_HYBRID_GA:
 			#TODO might separate algorithm seed from graph generation
-			self.frame_params.pack(pady=10)
-			self.label_parameters.pack()
-			self.textbox_iter.pack()
-			self.textbox_count_ants.pack()
-			self.slider_alpha.pack()
-			self.slider_beta.pack()
-			self.slider_eva.pack()
-			#TODO: ga_interval
-		elif selected==self.algorithms[1]:#ACO system
-			self.frame_params.pack(pady=10)
-			self.label_parameters.pack()
-			self.textbox_iter.pack()
-			self.textbox_count_ants.pack()
-			self.slider_alpha.pack()
-			self.slider_beta.pack()
-			self.slider_eva.pack()
-		elif selected==self.algorithms[2]:#ACO w/MaxMin
-			self.frame_params.pack(pady=10)
-			self.label_parameters.pack()
-			self.textbox_iter.pack()
-			self.textbox_count_ants.pack()
-			self.slider_alpha.pack()
-			self.slider_beta.pack()
-			self.slider_eva.pack()
-			#TODO: add tau_max, tau_min
-		elif selected==self.algorithms[3]:#ACO w/Simulated Annealing
-			self.frame_params.pack(pady=10)
-			self.label_parameters.pack()
-			self.textbox_iter.pack()
-			self.textbox_count_ants.pack()
-			self.slider_alpha.pack()
-			self.slider_beta.pack()
-			self.slider_eva.pack()
+			_show_aco_params(self)
+			self.textbox_ga_interval.pack()
+		elif selected==ALGO_ACO_SYSTEM or selected==ALGO_ACO_MAXMIN:
+			_show_aco_params(self)
+		elif selected==ALGO_ACO_HYBRID_SA:
+			_show_aco_params(self)
 			self.slider_sa_temp_alpha.pack()
 			self.slider_sa_temp_max.pack()
 			self.slider_sa_temp_min.pack()
-		elif selected==self.algorithms[4]: pass #no params
+		elif selected==ALGO_ASTAR: pass #no params
 		else:
 			print(f'[INFO]: No parameters available for {selected}')
 
@@ -179,13 +181,13 @@ class MainApp:
 				y_coord= random.randint(20, self.canvas.winfo_height()-40)
 				i = 0
 		return Node(x_coord, y_coord)
-	
+
 	def btn_rand_point(self):
 		self.nodes.append(self.rand_point())
 		self.canvas_redraw()
 
 	def btn_rand_graph(self):
-		self.seed= self.textbox_seed.get()
+		self.seed= self.textbox_seed_gen.get()
 		random.seed(self.seed)
 		if len(self.nodes)!=0:
 			self.canvas_clear()
@@ -228,12 +230,11 @@ class MainApp:
 		self.button_rand_generation.config(state="disabled")
 		self.button_rand_point.config(state="disabled")
 
-
 		history= []
 		count_iter= self.textbox_iter.get()
 		t0= time.time()
 
-		if self.combobox_aco.get()=='Genetic':
+		if self.combobox_aco.get()==ALGO_ACO_HYBRID_GA:
 			colony= HybridACO_GA(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
@@ -254,7 +255,7 @@ class MainApp:
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
 
-		elif self.combobox_aco.get()=='System':
+		elif self.combobox_aco.get()==ALGO_ACO_SYSTEM:
 			colony= SystemACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
@@ -271,7 +272,7 @@ class MainApp:
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
 
-		elif self.combobox_aco.get()=='MaxMin':
+		elif self.combobox_aco.get()==ALGO_ACO_MAXMIN:
 			colony= MaxMinACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
@@ -288,7 +289,7 @@ class MainApp:
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
 
-		elif self.combobox_aco.get()=='Simulated Annealing':
+		elif self.combobox_aco.get()==ALGO_ACO_HYBRID_SA:
 			if self.slider_sa_temp_max.get()<self.slider_sa_temp_min.get():
 				messagebox.showerror('ERROR!', 'Minimum temperature must be less than maximum!')
 				return
@@ -314,9 +315,21 @@ class MainApp:
 				if new_cost<best.cost:#Refine best ant using Simulated Annealing
 					best.tour= new_tour
 					best.cost= new_cost
-		elif self.combobox_aco.get()=='A*':
-			start_city= 0
-			best.tour, best.cost= a_star_tsp(self.nodes, start_city) #TODO: change result variables for better algorithms integration
+		elif self.combobox_aco.get()==ALGO_ASTAR:
+			best_path, best_cost= a_star_tsp(self.nodes, 0)
+			dt= time.time()-t0
+			print(f'Optimal Distance: {best_cost}')
+			print(f'Algorithm Time Taken: {dt} seconds')
+			self.canvas.delete('all')
+			for i in range(len(best_path)-1):
+				idx1= best_path[i]
+				idx2= best_path[i+1]
+				self.canvas.create_line(self.nodes[idx1].x, self.nodes[idx1].y, self.nodes[idx2].x, self.nodes[idx2].y, fill='red', width=2)
+			self.canvas.create_line(self.nodes[best_path[-1]].x, self.nodes[best_path[-1]].y,
+						self.nodes[best_path[ 0]].x, self.nodes[best_path[ 0]].y, fill='red', width=2)
+			for node in self.nodes:
+				node.draw(self.canvas)
+			return
 		else:
 			messagebox.showerror('ERROR!', 'No implementation for algorithm')
 		
@@ -327,12 +340,12 @@ class MainApp:
 		print(f'Algorithm Time Taken: {dt} seconds')
 		print('Done\n')
 
-		if self.var_animmode.get()!=self.anim_modes[0]:#ANIMATION SYSTEM
+		if self.var_animmode.get()!=ANIM_DISABLED:#ANIMATION SYSTEM
 			animation_delay= self.slider_delay.get()
 			for iteration in history:
 				lines = []
 				prev_i = None
-				if self.var_animmode.get()==self.anim_modes[1]:#BEST ANTS ONLY PER ITERATION
+				if self.var_animmode.get()==ANIM_BEST:#BEST ANTS ONLY PER ITERATION
 					sorted_ants= sorted(iteration, key=lambda a: a.cost)
 					best_ant= sorted_ants[0]
 					for i in best_ant.tour:
@@ -356,7 +369,7 @@ class MainApp:
 							if node.color=='orange':
 								node.color= 'white'
 						self.canvas_redraw()
-				elif self.var_animmode.get()==self.anim_modes[2]:#ALL ANTS
+				elif self.var_animmode.get()==ANIM_ALL:#ALL ANTS
 					for ant in iteration:
 						lines= []
 						for i in ant.tour:
@@ -364,7 +377,7 @@ class MainApp:
 							self.nodes[i].color= 'orange'
 							#edge
 							if prev_i!=None:
-								lines.append({'x0':self.nodes[prev_i].x,'y0':self.nodes[prev_i].y,'x1':self.nodes[i].x,'y1':self.nodes[i].y})	
+								lines.append({'x0':self.nodes[prev_i].x,'y0':self.nodes[prev_i].y,'x1':self.nodes[i].x,'y1':self.nodes[i].y})
 							#store node to be used as prev
 							prev_i= i
 							# redraw
@@ -373,13 +386,13 @@ class MainApp:
 								self.canvas.create_line(line['x0'], line['y0'], line['x1'], line['y1'], fill='orange', width=2)
 							for node in self.nodes:
 								node.draw(self.canvas)
-							self.canvas.update()		
+							self.canvas.update()
 							#delay
 							time.sleep(animation_delay)
 							#clear for the next iteration
 							for node in self.nodes:
 								if node.color=='orange':
-									node.color= 'white' 
+									node.color= 'white'
 							self.canvas_redraw()
 		#DRAW RESULT
 		self.canvas.delete('all')

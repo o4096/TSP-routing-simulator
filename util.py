@@ -28,7 +28,6 @@ class Slider:
 		self.slider.pack_forget()
 		# self.slider.pack_forget()
 
-
 	def get(self):
 		return self.value.get()
 
