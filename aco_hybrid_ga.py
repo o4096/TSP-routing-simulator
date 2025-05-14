@@ -15,7 +15,7 @@ class Ant:
 		self.cost= 0.0
 		self.tour= []
 
-class HybridACO:
+class HybridACO_GA:
 	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2, seed=None):
 		self.cities=		cities[:]
 		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't have 2 cities as parameters?
@@ -119,7 +119,7 @@ def main():
 	cities=   [City(random.randint(0, 500), random.randint(0, 500)) for _ in range(n_cities)]
 
 	#Config of Algorithm (Passed to Algorithm Class by Application)
-	colony= HybridACO(cities, #TODO: it'll probably be better to pass the graph inside the main loop
+	colony= HybridACO_GA(cities, #TODO: it'll probably be better to pass the graph inside the main loop
 	        # lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 	        lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 	)
