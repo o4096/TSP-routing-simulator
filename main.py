@@ -9,7 +9,7 @@ import numpy as np
 from aco           import SystemACO
 from aco_maxmin    import MaxMinACO
 from aco_hybrid_ga import HybridACO_GA, generate_children
-from aco_hybrid_sa import HybridACO_SA, simulated_annealing
+from ACO_hybrid_SA import HybridACO_SA, simulated_annealing
 
 #Deterministic Algorithms (in case we need to validate optimal solution)
 from astar import a_star_tsp
