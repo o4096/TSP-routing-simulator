@@ -9,7 +9,7 @@ import numpy as np
 from aco           import SystemACO
 from aco_maxmin    import MaxMinACO
 from aco_hybrid_ga import HybridACO_GA, generate_children
-from ACO_hybrid_SA import HybridACO_SA, simulated_annealing
+from aco_hybrid_sa import HybridACO_SA, simulated_annealing
 
 #Deterministic Algorithms (in case we need to validate optimal solution)
 from astar import a_star_tsp
@@ -87,7 +87,7 @@ class MainApp:
 		self.textbox_count_ants=   IntEntry(self.frame_params, initvalue=50, label='Number of Ants:')
 		self.slider_alpha=           Slider(self.frame_params,     1, 0,   10, 'Pheromone influence (α)')
 		self.slider_beta=            Slider(self.frame_params,     2, 0,   10, 'A priori influence (β)')
-		self.slider_eva=             Slider(self.frame_params,   0.1, 0,    1, 'Pheromone Eva. Rate (ρ)')
+		self.slider_eva=             Slider(self.frame_params,   0.1, 0,    .999, 'Pheromone Eva. Rate (ρ)')
 		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995, 0,    1, 'Temperature Alpha')
 		self.slider_sa_temp_max=     Slider(self.frame_params,  1000, 0, 1000, 'Temperature Max')
 		self.slider_sa_temp_min=     Slider(self.frame_params,     1, 0, 1000, 'Temperature Min')
@@ -212,6 +212,11 @@ class MainApp:
 			messagebox.showerror('ERROR', 'Nodes count must be 2 or more!')
 			return
 
+		self.button_clear.config(state="disabled")
+		self.button_rand_generation.config(state="disabled")
+		self.button_rand_point.config(state="disabled")
+
+
 		history= []
 		count_iter= self.textbox_iter.get()
 		t0= time.time()
@@ -302,8 +307,7 @@ class MainApp:
 			best.tour, best.cost= a_star_tsp(self.nodes, start_city) #TODO: change result variables for better algorithms integration
 		else:
 			messagebox.showerror('ERROR!', 'No implementation for algorithm')
-			return
-
+		
 		dt= time.time()-t0
 
 		print(f'Best Tour: {[self.nodes[i].id for i in best.tour]}')
@@ -375,6 +379,10 @@ class MainApp:
 		                        self.nodes[best.tour[ 0]].x, self.nodes[best.tour[ 0]].y, fill='red', width=2)
 		for node in self.nodes:
 			node.draw(self.canvas)
+
+		self.button_clear.config(state="enabled")
+		self.button_rand_generation.config(state="enabled")
+		self.button_rand_point.config(state="enabled")
 
 	def canvas_clear(self):
 		self.canvas.delete('all')
