@@ -36,15 +36,16 @@ class IntEntry:
 	def __init__(self, master, initvalue=1, label='', includes_buttons=True, width=5):
 		self.master=            master
 		self.value=             initvalue if initvalue>=1 else 1
+		self.var= StringVar(value=f'{self.value}')
 		self._includes_buttons= includes_buttons
 
 		self.frame=   Frame(self.master)#frame to hold the entry and buttons
 		self.label=   Label(self.frame, text=label, justify=LEFT)
-		self.entry=   Entry(self.frame, textvariable=str(initvalue), width=width)
+		self.entry=   Entry(self.frame, textvariable=self.var, width=width)
 		if includes_buttons:
 			self.btn_up= Button(self.frame, width=4, text='▲', command=self.increment)
 			self.btn_dn= Button(self.frame, width=4, text='▼', command=self.decrement)
-		self.entry.insert(0, str(self.value))
+		# self.entry.insert(0, f'{self.value}')
 
 		# Bind the entry widget to validate input
 		self.entry.bind('<FocusOut>',   self._update_value)#update value when textbox out of focus
@@ -92,8 +93,9 @@ class IntEntry:
 	
 	def _update_entry(self):
 		'''Update the entry widget with the current value.'''
-		self.entry.delete(0, END)
-		self.entry.insert(0, str(self.value))
+		# self.entry.delete(0, END)
+		# self.entry.insert(0, str(self.value))
+		self.var.set(f'{self.value}')
 
 	def _update_value(self, event):
 		'''Update the value from the entry widget.'''

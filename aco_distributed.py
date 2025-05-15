@@ -1,6 +1,7 @@
 import numpy as np
+import random
 import time
-from .base import BaseSolver
+from base import BaseSolver
 from settings import DISTRIBUTED_ACO_SETTINGS, PROGRESS_LOG_FREQUENCY
 
 class DistributedACO(BaseSolver):
@@ -46,7 +47,7 @@ class DistributedACO(BaseSolver):
 		self.seed = seed if seed is not None else DISTRIBUTED_ACO_SETTINGS['seed']
 		
 		# Set random seed
-		np.random.seed(self.seed)
+		random.seed(self.seed)
 		
 		# Initialize colony-specific data
 		self.num_cities = tsp.num_cities
@@ -120,9 +121,9 @@ class DistributedACO(BaseSolver):
 	def _construct_path(self, colony):
 		"""Construct a path for an ant in the given colony."""
 		# Start at a random city
-		start_city = np.random.randint(0, self.num_cities)
+		start_city = random.randint(0, self.num_cities-1)
 		path = [start_city]
-		unvisited = set(range(self.num_cities))
+		unvisited = list(range(self.num_cities))
 		unvisited.remove(start_city)
 		
 		# Construct path by selecting next city
@@ -143,8 +144,8 @@ class DistributedACO(BaseSolver):
 				probabilities = np.ones(len(unvisited)) / len(unvisited)
 			
 			# Select next city using roulette wheel selection
-			next_city_idx = np.random.choice(len(unvisited), p=probabilities)
-			next_city = list(unvisited)[next_city_idx]
+			next_city = random.choices(unvisited, probabilities)[0]
+			# next_city = unvisited[next_city_idx]
 			
 			# Add next city to path
 			path.append(next_city)
@@ -200,7 +201,7 @@ class DistributedACO(BaseSolver):
 				# Select a random different colony
 				other_colony = colony
 				while other_colony == colony:
-					other_colony = np.random.randint(0, self.num_colonies)
+					other_colony = random.randint(0, self.num_colonies-1)
 				
 				# Mix pheromones
 				self.pheromones[colony] = 0.8 * self.pheromones[colony] + 0.2 * self.pheromones[other_colony]

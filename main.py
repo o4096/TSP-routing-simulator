@@ -6,24 +6,27 @@ import time, random
 import numpy as np
 
 #Evolutionary Algorithms
-from aco             import SystemACO
+from aco_system      import SystemACO
 from aco_maxmin      import MaxMinACO
 from aco_hybrid_ga   import HybridACO_GA, generate_children
 from aco_hybrid_sa   import HybridACO_SA, simulated_annealing
 from aco_distributed import DistributedACO
+from tsp import TSP #for DistributedACO
 
-#Deterministic Algorithms (in case we need to validate optimal solution)
-from astar import a_star_tsp
+# #Deterministic Algorithms (in case we need to validate optimal solution)
+# from astar import a_star_tsp
 
 ANIM_DISABLED= 'No Animation'
 ANIM_BEST=     'Animate Best Ants'
 ANIM_ALL=      'Animate All Ants (long)'
 
-ALGO_ACO_SYSTEM=    'ACO System'
-ALGO_ACO_MAXMIN=    'ACO MaxMin'
-ALGO_ACO_HYBRID_GA= 'ACO Genetics'
-ALGO_ACO_HYBRID_SA= 'ACO Simulated Annealing'
-ALGO_ASTAR=         'A* Search (deterministic)'
+ALGO_ACO_SYSTEM=      'ACO System'
+ALGO_ACO_MAXMIN=      'ACO MaxMin'
+ALGO_ACO_HYBRID_GA=   'ACO Genetics'
+ALGO_ACO_HYBRID_SA=   'ACO Simulated Annealing'
+ALGO_ACO_DISTRIBUTED= 'ACO Distributed'
+# ALGO_ACO_TIMED=       'ACO Timed'
+# ALGO_ASTAR=           'A* Search (deterministic)'
 
 class Node:
 	obj_count= 0
@@ -52,7 +55,9 @@ class MainApp:
 			ALGO_ACO_MAXMIN,
 			ALGO_ACO_HYBRID_GA,
 			ALGO_ACO_HYBRID_SA,
-			ALGO_ASTAR,
+			ALGO_ACO_DISTRIBUTED,
+			# ALGO_ACO_TIMED,
+			# ALGO_ASTAR,
 		]
 
 		#Create UI components
@@ -65,14 +70,14 @@ class MainApp:
 
 		#CONTRUCT MENUBAR
 		mb=      Menu(root)
-		mb_file= Menu(mb, tearoff=0)
+		# mb_file= Menu(mb, tearoff=0)
 		mb_anim= Menu(mb, tearoff=0)
 		mb_help= Menu(mb, tearoff=0)
 
-		mb_file.add_command(label='Open...', command=None)
-		mb_file.add_command(label='Save',    command=None);	mb_file.add_separator()
-		mb_file.add_command(label='Exit',    command=root.destroy)
-		mb.add_cascade(label='File', menu=mb_file)
+		# mb_file.add_command(label='Open...', command=None)
+		# mb_file.add_command(label='Save',    command=None);	mb_file.add_separator()
+		# mb_file.add_command(label='Exit',    command=root.destroy)
+		# mb.add_cascade(label='File', menu=mb_file)
 
 		for anim in self.anim_modes:
 			mb_anim.add_radiobutton(label=anim, variable=self.var_animmode, value=anim)
@@ -104,15 +109,22 @@ class MainApp:
 		self.textbox_iter=         IntEntry(self.frame_params, initvalue=30,        label='Iterations:')
 		self.textbox_count_ants=   IntEntry(self.frame_params, initvalue=50,        label='Number of Ants:')
 		self.textbox_ga_interval=  IntEntry(self.frame_params, initvalue=10,        label='Genetics Interval:')
-		self.slider_alpha=           Slider(self.frame_params,     1, 0,   10, 'Pheromone influence (α)')
-		self.slider_beta=            Slider(self.frame_params,     2, 0,   10, 'A priori influence (β)')
-		self.slider_eva=             Slider(self.frame_params,   0.1, 0, .999, 'Pheromone Eva. Rate (ρ)')
-		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995, 0,    1, 'Cooling Rate (α)')
-		self.slider_sa_temp_max=     Slider(self.frame_params,  1000, 0, 1000, 'Temperature Start')
-		self.slider_sa_temp_min=     Slider(self.frame_params,     1, 0, 1000, 'Temperature End')
+		self.textbox_dis_colony=   IntEntry(self.frame_params, initvalue=4,         label='Number of Colonies:')
+		self.textbox_dis_ants=     IntEntry(self.frame_params, initvalue=100,       label='Ants per Colony:')
+		self.textbox_dis_xchgf=    IntEntry(self.frame_params, initvalue=10,        label='Exchange Frequency:')
+		self.textbox_dis_maxiter=  IntEntry(self.frame_params, initvalue=100,       label='Max Iterations:')
+		self.slider_alpha=           Slider(self.frame_params,     1,  0,    10, 'Pheromone influence (α)')
+		self.slider_beta=            Slider(self.frame_params,     2,  0,    10, 'A priori influence (β)')
+		self.slider_eva=             Slider(self.frame_params,   0.1,  0, 0.999, 'Pheromone Eva. Rate (ρ)')
+		self.slider_q=               Slider(self.frame_params,   100, 50,   150, 'Pheromone Deposit (Q)')
+		self.slider_sa_temp_alpha=   Slider(self.frame_params, 0.995,  0,     1, 'Cooling Rate (α)')
+		self.slider_sa_temp_max=     Slider(self.frame_params,  1000,  0,  1000, 'Temperature Start')
+		self.slider_sa_temp_min=     Slider(self.frame_params,     1,  0,  1000, 'Temperature End')
+		self.combobox_dis_xchgs=   Combobox(self.frame_params, state='readonly', values=['random', 'best'])
+		self.combobox_dis_xchgs.set('random')
 
 		self.frame_run=     Frame(self.frame_ctrl)
-		self.slider_delay= Slider(self.frame_run, 0, 0, 1, 'Animation Delay')
+		self.slider_delay= Slider(self.frame_run, 0, 0, 0.02, 'Animation Delay')
 		self.button_run=   Button(self.frame_run, text='Run', command=self.run)
 
 		#UI packing
@@ -137,7 +149,7 @@ class MainApp:
 		#Bindings
 		self.canvas.bind('<Button-1>', self.mb_left)
 		self.canvas.bind('<Button-3>', self.mb_right)
-		self.combobox_aco.bind("<<ComboboxSelected>>", self.algo_selected)
+		self.combobox_aco.bind('<<ComboboxSelected>>', self.algo_selected)
 		self.algo_selected()
 
 	def algo_selected(self, event=None):
@@ -148,15 +160,15 @@ class MainApp:
 		def _show_aco_params(self):
 			self.frame_params.pack(pady=10)
 			self.label_parameters.pack()
-		
+			self.textbox_seed_algo.pack()
 			self.textbox_iter.pack()
 			self.textbox_count_ants.pack()
 			self.slider_alpha.pack()
 			self.slider_beta.pack()
 			self.slider_eva.pack()
+			self.slider_q.pack()
 
 		if   selected==ALGO_ACO_HYBRID_GA:
-			#TODO might separate algorithm seed from graph generation
 			_show_aco_params(self)
 			self.textbox_ga_interval.pack()
 		elif selected==ALGO_ACO_SYSTEM or selected==ALGO_ACO_MAXMIN:
@@ -166,14 +178,22 @@ class MainApp:
 			self.slider_sa_temp_alpha.pack()
 			self.slider_sa_temp_max.pack()
 			self.slider_sa_temp_min.pack()
-		elif selected==ALGO_ASTAR: pass #no params
+		elif selected==ALGO_ACO_DISTRIBUTED:
+			_show_aco_params(self)
+			self.textbox_dis_colony.pack()
+			self.textbox_dis_ants.pack()
+			self.textbox_dis_xchgf.pack()
+			self.combobox_dis_xchgs.pack()
+			self.textbox_dis_maxiter.pack()
+
+		# elif selected==ALGO_ASTAR: pass #no params
 		else:
 			print(f'[INFO]: No parameters available for {selected}')
 
 	def rand_point(self):
 		# radius 5
 		x_coord= random.randint(20, self.canvas.winfo_width() -40)
-		y_coord= random.randint(20, self.canvas.winfo_height() -40)
+		y_coord= random.randint(20, self.canvas.winfo_height()-40)
 		for i in range(len(self.nodes)):
 			d = np.sqrt((x_coord-self.nodes[i].x)**2+(y_coord-self.nodes[i].y)**2)
 			if d <= 10:
@@ -226,24 +246,26 @@ class MainApp:
 			messagebox.showerror('ERROR', 'Nodes count must be 2 or more!')
 			return
 
-		self.button_clear.config(state="disabled")
-		self.button_rand_generation.config(state="disabled")
-		self.button_rand_point.config(state="disabled")
-
+		self.button_clear.config(state='disabled')
+		self.button_rand_generation.config(state='disabled')
+		self.button_rand_point.config(state='disabled')
+		
 		history= []
 		count_iter= self.textbox_iter.get()
 		t0= time.time()
 
-		if self.combobox_aco.get()==ALGO_ACO_HYBRID_GA:
-			colony= HybridACO_GA(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+		if   self.combobox_aco.get()==ALGO_ACO_HYBRID_GA:
+			colony= HybridACO_GA(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				Q=                self.slider_q.get(),
 				num_ants=         self.textbox_count_ants.get(),
+				seed=             self.textbox_seed_algo.get(),
 			)
-			ga_interval= 2
+			ga_interval= self.textbox_ga_interval.get()
 			loss= [0.0]*count_iter
 			for iteration in range(count_iter):
 				colony.update()
@@ -254,15 +276,16 @@ class MainApp:
 				history.append([ant for ant in colony.ants])
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
-
 		elif self.combobox_aco.get()==ALGO_ACO_SYSTEM:
-			colony= SystemACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+			colony= SystemACO(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				Q=                self.slider_q.get(),
 				num_ants=         self.textbox_count_ants.get(),
+				seed=             self.textbox_seed_algo.get(),
 			)
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
@@ -271,15 +294,16 @@ class MainApp:
 				history.append([ant for ant in colony.ants])
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
-
 		elif self.combobox_aco.get()==ALGO_ACO_MAXMIN:
-			colony= MaxMinACO(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+			colony= MaxMinACO(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				Q=                self.slider_q.get(),
 				num_ants=         self.textbox_count_ants.get(),
+				seed=             self.textbox_seed_algo.get(),
 			)
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
@@ -288,19 +312,20 @@ class MainApp:
 				history.append([ant for ant in colony.ants])
 				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
 				loss[iteration]= best.cost
-
 		elif self.combobox_aco.get()==ALGO_ACO_HYBRID_SA:
 			if self.slider_sa_temp_max.get()<self.slider_sa_temp_min.get():
 				messagebox.showerror('ERROR!', 'Minimum temperature must be less than maximum!')
 				return
 
-			colony= HybridACO_SA(self.nodes, #TODO: it'll probably be better to pass the graph inside the main loop
+			colony= HybridACO_SA(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
 				lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2),	#l2_norm - Euclidean Distance
 				alpha=            self.slider_alpha.get(),
 				beta=             self.slider_beta.get(),
 				evaporation_rate= self.slider_eva.get(),
+				Q=                self.slider_q.get(),
 				num_ants=         self.textbox_count_ants.get(),
+				seed=             self.textbox_seed_algo.get(),
 			)
 			for iteration in range(count_iter):
 				colony.update()
@@ -315,21 +340,39 @@ class MainApp:
 				if new_cost<best.cost:#Refine best ant using Simulated Annealing
 					best.tour= new_tour
 					best.cost= new_cost
-		elif self.combobox_aco.get()==ALGO_ASTAR:
-			best_path, best_cost= a_star_tsp(self.nodes, 0)
-			dt= time.time()-t0
-			print(f'Optimal Distance: {best_cost}')
-			print(f'Algorithm Time Taken: {dt} seconds')
-			self.canvas.delete('all')
-			for i in range(len(best_path)-1):
-				idx1= best_path[i]
-				idx2= best_path[i+1]
-				self.canvas.create_line(self.nodes[idx1].x, self.nodes[idx1].y, self.nodes[idx2].x, self.nodes[idx2].y, fill='red', width=2)
-			self.canvas.create_line(self.nodes[best_path[-1]].x, self.nodes[best_path[-1]].y,
-						self.nodes[best_path[ 0]].x, self.nodes[best_path[ 0]].y, fill='red', width=2)
-			for node in self.nodes:
-				node.draw(self.canvas)
-			return
+		elif self.combobox_aco.get()==ALGO_ACO_DISTRIBUTED:
+			tsp= TSP(len(self.nodes), self.canvas.winfo_width()-40, self.canvas.winfo_height()-40, self.textbox_seed_gen.get())
+			solver= DistributedACO(tsp=tsp,
+			                       num_colonies=      self.textbox_dis_colony.get(),
+			                       ants_per_colony=   self.textbox_dis_ants.get(),
+			                       alpha=             self.slider_alpha.get(),
+			                       beta=              self.slider_beta.get(),
+			                       rho=               self.slider_eva.get(),
+			                       q=                 self.slider_q.get(),
+			                       exchange_freq=     self.textbox_dis_xchgf.get(),
+			                       exchange_strategy= self.combobox_dis_xchgs.get(),
+			                       max_iterations=    self.textbox_dis_maxiter.get(),
+			                       seed=              self.textbox_seed_algo.get(),
+				)
+			best_path= solver.solve()
+			solver.plot_convergence()
+			solver.plot_solution()
+			print(best_path)
+		# elif self.combobox_aco.get()==ALGO_ASTAR:
+		# 	best_path, best_cost= a_star_tsp(self.nodes, 0)
+		# 	dt= time.time()-t0
+		# 	print(f'Optimal Distance: {best_cost}')
+		# 	print(f'Algorithm Time Taken: {dt} seconds')
+		# 	self.canvas.delete('all')
+		# 	for i in range(len(best_path)-1):
+		# 		idx1= best_path[i]
+		# 		idx2= best_path[i+1]
+		# 		self.canvas.create_line(self.nodes[idx1].x, self.nodes[idx1].y, self.nodes[idx2].x, self.nodes[idx2].y, fill='red', width=2)
+		# 	self.canvas.create_line(self.nodes[best_path[-1]].x, self.nodes[best_path[-1]].y,
+		# 				self.nodes[best_path[ 0]].x, self.nodes[best_path[ 0]].y, fill='red', width=2)
+		# 	for node in self.nodes:
+		# 		node.draw(self.canvas)
+		# 	return
 		else:
 			messagebox.showerror('ERROR!', 'No implementation for algorithm')
 		
@@ -405,9 +448,9 @@ class MainApp:
 		for node in self.nodes:
 			node.draw(self.canvas)
 
-		self.button_clear.config(state="enabled")
-		self.button_rand_generation.config(state="enabled")
-		self.button_rand_point.config(state="enabled")
+		self.button_clear.config(state='enabled')
+		self.button_rand_generation.config(state='enabled')
+		self.button_rand_point.config(state='enabled')
 
 	def canvas_clear(self):
 		self.canvas.delete('all')
