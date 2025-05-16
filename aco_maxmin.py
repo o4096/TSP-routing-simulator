@@ -11,9 +11,10 @@ def distance(self, other):
 	return np.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
 
 class Ant:
-	def __init__(self):
-		self.cost= 0.0
-		self.tour= []
+	def __init__(self, cost=0.0, tour=None):
+		self.cost= cost
+		if tour==None: self.tour= []
+		else:          self.tour= tour[:]
 
 	def clear(self):
 		self.cost= 0.0
@@ -34,9 +35,7 @@ class MaxMinACO:
 		self.tau_max = 1.0 / (evaporation_rate * d)
 		self.pheromones = np.full((len(cities), len(cities)), self.tau_max)
 		self.tau_min = self.tau_max / (2 * len(self.cities))
-
-		if seed:
-			random.seed(seed)
+		random.seed(seed)
 
 	def update(self):
 		for ant in self.ants:

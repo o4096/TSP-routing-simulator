@@ -11,14 +11,14 @@ class City:
 		return np.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
 	
 class Ant:
-	def __init__(self):
-		self.cost = 0.0
-		self.tour = []
+	def __init__(self, cost=0.0, tour=None):
+		self.cost= cost
+		if tour==None: self.tour= []
+		else:          self.tour= tour[:]
 
 	def clear(self):
-		self.cost = 0
-		self.tour = []
-
+		self.cost= 0.0
+		self.tour= []
 class SystemACO:
 	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2, seed=None):
 		self.cities = cities[:]
@@ -29,8 +29,7 @@ class SystemACO:
 		self.Q = Q
 		self.alpha = alpha
 		self.beta = beta
-		if seed:
-			random.seed(int(time.time_ns()))
+		random.seed(seed)
 
 	def update(self):
 		for ant in self.ants:

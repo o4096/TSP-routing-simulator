@@ -8,8 +8,10 @@ class City:
 		self.y = y
 
 class Ant:
-	def __init__(self):
-		self.clear()
+	def __init__(self, cost=0.0, tour=None):
+		self.cost= cost
+		if tour==None: self.tour= []
+		else:          self.tour= tour[:]
 
 	def clear(self):
 		self.cost= 0.0
@@ -26,8 +28,7 @@ class HybridACO_GA:
 		self.alpha=		alpha
 		self.beta=		beta
 		# self._best_ant= None
-		if seed:
-			random.seed(int(time.time_ns()))
+		random.seed(seed)
 
 	def update(self):
 		for ant in self.ants:

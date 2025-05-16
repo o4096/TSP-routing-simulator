@@ -8,8 +8,10 @@ class City:
 		self.y = y
 
 class Ant:
-	def __init__(self):
-		self.clear()
+	def __init__(self, cost=0.0, tour=None):
+		self.cost= cost
+		if tour==None: self.tour= []
+		else:          self.tour= tour[:]
 
 	def clear(self):
 		self.cost= 0.0
@@ -25,8 +27,7 @@ class HybridACO_SA:
 		self.Q=			Q	#TODO: should this be parameterized?
 		self.alpha=		alpha
 		self.beta=		beta
-		if seed:
-			random.seed(int(time.time_ns()))
+		random.seed(seed)
 		# self._best_ant= None
 
 	def update(self):
