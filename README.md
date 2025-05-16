@@ -1,7 +1,7 @@
 # Optimized Waste Collection Routing in Cities
 A simulation platform to solve the Traveling Salesman Problem (TSP) to collect waste from various cities using various heuristic and metaheuristic optimization techniques, with a focus on Ant Colony Optimization (ACO) and its hybrid variants.
-## Project Overview
 
+## Project Overview
 This project implements many variants of Ant Colony Optimization (ACO) algorithms to solve the Traveling Salesman Problem (TSP). The implementations include:
 
 **Multiple ACO-based algorithms:**
@@ -19,32 +19,65 @@ all algorithms are evaluated on randomly generated TSP instances, and their perf
 1. Graph Representation: The problem is modeled as a graph where:
   - Nodes represent decision points (e.g., cities in TSP or waste collection points in WCRP). 
   - Edges represent possible connections or paths between nodes, often associated with a cost (e.g., distance or time).
+
 2. Artificial Ants: These are agents that explore the graph by constructing solutions (e.g., a route) based on probabilistic decisions influenced by pheromone trails and heuristic information.
+
 3. Pheromone Trails: Each edge in the graph has an associated pheromone value, which represents the desirability of choosing that path. Pheromone levels are updated based on the quality of solutions found by the ants.
 ![image](https://github.com/user-attachments/assets/4796789c-8c0d-471c-8af3-645b0304e810)
 
 ## Algorithms Implemented:
-### 1- Basic ACO:
+### 1 - Basic ACO:
   Simulates the behavior of ants seeking paths between their colony and food sources, adapted for solving TSP.
-  ![image](https://github.com/user-attachments/assets/43d33b02-e517-4c75-b04b-928b8cbde052)
+  ![gif](assets/aco_system_anim.gif)
+  ![image](assets/aco_system_curve.PNG)
   
-### 2- Min-Max ACO:
-  An enhancement of ACO that restricts pheromone values within upper and lower bounds to improve convergence.
-  ![image](https://github.com/user-attachments/assets/a086d41b-a6ab-48cd-8910-5d9253793182)
+### 2 - Min-Max ACO:
+  An enhancement of ACO that restricts pheromone values within upper and lower bounds/constraints to improve convergence.
+  ![gif](assets/aco_maxmin_anim.gif)
+  ![image](assets/aco_maxmin_curve.PNG)
 
-### 3- Distributed ACO:
-  Divides the search effort among multiple colonies that work independently with periodic information exchange to improve solution quality and convergence speed.\
-  ![image](https://github.com/user-attachments/assets/c102ddc1-0ad0-413e-840f-409e449477c3) ![image](https://github.com/user-attachments/assets/fb0d6fba-400f-4331-9d6f-48b696ffb66b)
-
-### 4- Hybrid ACO + Genetic Algorithm (GA):
+### 3 - Hybrid ACO + Genetic Algorithm (GA):
   Periodically applies crossover and mutation to improve the diversity of solutions and avoid local optima.
-  ![image](https://github.com/user-attachments/assets/46cc7e22-b180-4bd2-89b0-915011b146f4) ![image](https://github.com/user-attachments/assets/d45a2454-38ac-47d3-aa77-0e0079c54e5a)
+  ![gif](assets/aco_ga_anim.gif)
+  ![image](assets/aco_ga_curve.PNG)
 
-### 5 - Hybrid ACO + Simulated Annealing (SA):
+### 4 - Hybrid ACO + Simulated Annealing (SA):
   Uses probabilistic acceptance of worse solutions to avoid local optima.
-  ![image](https://github.com/user-attachments/assets/10ab72ee-4df1-4819-b1a9-5d5389b3388a)
+  ![gif](assets/aco_sa_anim.gif)
+  ![image](assets/aco_sa_curve.PNG)
 
+### 5 - Distributed ACO:
+  Divides the search effort among multiple colonies that work independently with periodic information exchange to improve solution quality and convergence speed.\
+  ![image](https://github.com/user-attachments/assets/fb0d6fba-400f-4331-9d6f-48b696ffb66b)
+  ![image](https://github.com/user-attachments/assets/c102ddc1-0ad0-413e-840f-409e449477c3)
 
+---
+## Installation Guide & Usage
+1. Install dependencies: (python 3.11+ installation with standard tkinter GUI library should suffice)
+```
+pip install numpy matplotlib
+```
 
+2. Clone the repository:
+```
+git clone https://github.com/o4096/TSP-routing-simulator.git
+cd TSP-routing-simulator
+```
 
+3. Run the project:
+```
+python main.py
+```
 
+4. To get the same results as shown above, set both the graph generation and algorithm seeds to `1747428753681946800`. Generate the random graph. Choose an algorithm then press run.
+
+## Algorithm Comparison
+
+The following table compares the performance of the four completely implemented algorithms set to 50 ants/colony running on 30 iterations to find the optimal route of a 20-city map TSP instance:
+
+| Algorithm | Best Distance | Execution Time |
+|-----------|---------------|----------------|
+| ACO System (basic) | 2528.42 | 2.86s |
+| ACO MaxMin | 2960.86 | 2.87s |
+| ACO + Genetic Algorithms | 2353.60 | 2.87s |
+| ACO + Simulated Annealing| 2341.71 | 11.01s |

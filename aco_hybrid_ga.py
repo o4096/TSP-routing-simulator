@@ -20,11 +20,11 @@ class Ant:
 class HybridACO_GA:
 	def __init__(self, cities, objfunc, num_ants=50, init_pheromone=1, evaporation_rate=0.1, Q=100, alpha=1, beta=2, seed=None):
 		self.cities=		cities[:]
-		self.objfunc=		objfunc #TODO: handle objective function better, what if it doesn't have 2 cities as parameters?
+		self.objfunc=		objfunc
 		self.ants=		[Ant() for _ in range(num_ants)]
 		self.pheromones=	np.ones((len(cities), len(cities)))*init_pheromone
 		self.eva_rate=		evaporation_rate
-		self.Q=			Q	#TODO: should this be parameterized?
+		self.Q=			Q
 		self.alpha=		alpha
 		self.beta=		beta
 		# self._best_ant= None
@@ -37,7 +37,6 @@ class HybridACO_GA:
 			prob= [1/len(unvisited) for _ in range(len(unvisited))]
 			while unvisited:
 				city= random.choices(unvisited, prob)[0]
-				# city= np.random.choice(unvisited, p=prob) #TODO find a way to seed this!!!
 				ant.tour.append(city)
 				unvisited.remove(city)
 
@@ -52,7 +51,7 @@ class HybridACO_GA:
 			for i in range(len(ant.tour)-1):
 				ant.cost+= self.objfunc(self.cities[ant.tour[i]], self.cities[ant.tour[i+1]])
 		
-		self.pheromones*= (1-self.eva_rate) #TODO: which is better? update pheromones only after all ants have explored vs after each individual ant exploration
+		self.pheromones*= (1-self.eva_rate)
 		for ant in self.ants:
 			for i in range(len(ant.tour)-1):
 				src= ant.tour[i]

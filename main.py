@@ -14,7 +14,7 @@ from aco_hybrid_sa   import HybridACO_SA, simulated_annealing
 from aco_distributed import DistributedACO
 from tsp import TSP #for DistributedACO
 
-# #Deterministic Algorithms (in case we need to validate optimal solution)
+# #Deterministic Algorithms (in case we need to validate optimal solution) (scrapped, focused more on bringing in more EA algorithms)
 # from astar import a_star_tsp
 
 ANIM_DISABLED= 'No Animation'
@@ -85,7 +85,7 @@ class MainApp:
 		mb_anim= Menu(mb, tearoff=0)
 		mb_help= Menu(mb, tearoff=0)
 
-		# mb_file.add_command(label='Open...', command=None)
+		# mb_file.add_command(label='Open...', command=None)	#TODO: add extra feature that saves program state and config for convenience (scrapped due to tight project time)
 		# mb_file.add_command(label='Save',    command=None);	mb_file.add_separator()
 		# mb_file.add_command(label='Exit',    command=root.destroy)
 		# mb.add_cascade(label='File', menu=mb_file)
@@ -480,13 +480,13 @@ class MainApp:
 		for node in self.nodes:
 			node.draw(self.canvas)
 
-		# loss= [history[i]['best_cost'] for i in range(len(history))]
-		# plt.plot(range(count_iter), loss, 'b-')
-		# plt.title('Total Distance Over Iterations')
-		# plt.xlabel('Iteration')
-		# plt.ylabel('Total Distance')
-		# plt.tight_layout()
-		# plt.show()
+		loss= [history[i]['best_cost'] for i in range(len(history))]
+		plt.plot(range(count_iter), loss, 'b-')
+		plt.title('Total Distance Over Iterations')
+		plt.xlabel('Iteration')
+		plt.ylabel('Total Distance')
+		plt.tight_layout()
+		plt.show()
 
 		self.button_clear.config(state='enabled')
 		self.button_rand_generation.config(state='enabled')
