@@ -33,7 +33,7 @@ all algorithms are evaluated on randomly generated TSP instances, and their perf
   ![image](https://github.com/user-attachments/assets/a086d41b-a6ab-48cd-8910-5d9253793182)
 
 ### 3- Distributed ACO:
-  Divides the search effort among multiple colonies that work independently with periodic information exchange to improve solution quality and convergence speed.
+  Divides the search effort among multiple colonies that work independently with periodic information exchange to improve solution quality and convergence speed.\
   ![image](https://github.com/user-attachments/assets/c102ddc1-0ad0-413e-840f-409e449477c3) ![image](https://github.com/user-attachments/assets/fb0d6fba-400f-4331-9d6f-48b696ffb66b)
 
 ### 4- Hybrid ACO + Genetic Algorithm (GA):
