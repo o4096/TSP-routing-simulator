@@ -47,10 +47,10 @@ class HybridACO_GA:
 					prob.append(tau*eta)
 				prob=  np.array(prob)
 				prob/= np.sum(prob)
-				
+			ant.tour.append(ant.tour[0])
 			for i in range(len(ant.tour)-1):
 				ant.cost+= self.objfunc(self.cities[ant.tour[i]], self.cities[ant.tour[i+1]])
-		
+
 		self.pheromones*= (1-self.eva_rate)
 		for ant in self.ants:
 			for i in range(len(ant.tour)-1):
@@ -128,6 +128,9 @@ def main():
 	ITERATIONS=	100
 	ga_interval=	10
 	loss= [0.0]*ITERATIONS
+	best_path= []
+	best_cost= float('inf')
+
 	t0= time.time()
 	for iteration in range(ITERATIONS):
 		colony.update()
@@ -136,19 +139,23 @@ def main():
 			children_tours= generate_children(colony.get_best(10), num_children=10, mutation_rate=0.1)
 			colony.replace_worst(children_tours)
 
-		best= colony.get_best()[0]
-		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
-		loss[iteration]= best.cost
+		for ant in colony.ants:
+			if best_cost>ant.cost:
+				best_cost=ant.cost
+				best_path=ant.tour
+
+		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best_cost}')
+		loss[iteration]= best_cost
 
 	dt= time.time()-t0
 
 	best= colony.get_best()[0]
-	print(f'Best Tour: {[int(city) for city in best.tour]}')
-	print(f'Best Distance: {best.cost} km')
+	print(f'Best Tour: {[int(city) for city in best_path]}')
+	print(f'Best Distance: {best_cost} km')
 	print(f'Algorithm Time Taken: {dt} seconds')
 
-	x= [cities[i].x for i in best.tour]+[cities[best.tour[0]].x]
-	y= [cities[i].y for i in best.tour]+[cities[best.tour[0]].y]
+	x= [cities[i].x for i in best_path]+[cities[best_path[0]].x]
+	y= [cities[i].y for i in best_path]+[cities[best_path[0]].y]
 	plt.figure(figsize=(12, 6))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, y, 'ro-')

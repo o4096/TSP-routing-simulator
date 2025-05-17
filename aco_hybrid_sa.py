@@ -118,28 +118,33 @@ def main(seed=None):
 	ITERATIONS=	30
 	loss= [0.0]*ITERATIONS
 	t0= time.time()
+	best_path= []
+	best_cost= float('inf')
 	for iteration in range(ITERATIONS):
 		colony.update()
-		# Refine best ant using Simulated Annealing
-		best_ant = colony.get_best()[0]
-		new_tour, new_cost = simulated_annealing(best_ant.tour, colony.cities, colony.objfunc)
-		if new_cost < best_ant.cost:
-			best_ant.tour = new_tour
-			best_ant.cost = new_cost
+		
+		for ant in colony.ants:
+			if best_cost>ant.cost:
+				best_cost=ant.cost
+				best_path=ant.tour
 
-		best = colony.get_best()[0]
-		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
-		loss[iteration] = best.cost
+		new_path, new_cost = simulated_annealing(best_path, colony.cities, colony.objfunc)
+		if best_cost>new_cost:
+			best_path= new_path
+			best_cost= new_cost
+
+		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best_cost}')
+		loss[iteration] = best_cost
 
 	dt= time.time()-t0
 
 	best= colony.get_best()[0]
-	print(f'Best Tour: {[int(city) for city in best.tour]}')
-	print(f'Best Distance: {best.cost} km')
+	print(f'Best Tour: {[int(city) for city in best_path]}')
+	print(f'Best Distance: {best_cost} km')
 	print(f'Algorithm Time Taken: {dt} seconds')
 
-	x= [cities[i].x for i in best.tour]+[cities[best.tour[0]].x]
-	y= [cities[i].y for i in best.tour]+[cities[best.tour[0]].y]
+	x= [cities[i].x for i in best_path]+[cities[best_path[0]].x]
+	y= [cities[i].y for i in best_path]+[cities[best_path[0]].y]
 	plt.figure(figsize=(12, 6))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, y, 'ro-')

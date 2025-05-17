@@ -103,10 +103,10 @@ class MainApp:
 		self.frame_ctrl=  Frame(self.root)#control panel
 
 		self.frame_graphconfig=         Frame(self.frame_ctrl)
-		self.button_clear=             Button(self.frame_graphconfig, text='Clear Graph',  command=self.canvas_clear)
-		self.button_rand_generation=   Button(self.frame_graphconfig, text='Random Graph', command=self.btn_rand_graph)
-		self.button_rand_point=        Button(self.frame_graphconfig, text='Random Point', command=self.btn_rand_point)
-		self.textbox_node=           IntEntry(self.frame_graphconfig, initvalue=20,        label='Nodes:')
+		self.button_clear=             Button(self.frame_graphconfig, text='Clear Graph',    command=self.canvas_clear)
+		self.button_rand_generation=   Button(self.frame_graphconfig, text='Generate Graph', command=self.btn_rand_graph)
+		self.button_rand_point=        Button(self.frame_graphconfig, text='Random Point',   command=self.btn_rand_point)
+		self.textbox_node=           IntEntry(self.frame_graphconfig, initvalue=50,        label='Nodes:')
 		self.textbox_seed_gen=       IntEntry(self.frame_graphconfig, initvalue=self.seed, label='Seed:', includes_buttons=False, width=None)
 
 		self.frame_algolist=        Frame(self.frame_ctrl)
@@ -202,7 +202,6 @@ class MainApp:
 			print(f'[INFO]: No parameters available for {selected}')
 
 	def rand_point(self):
-		# radius 5
 		x_coord= random.randint(20, self.canvas.winfo_width() -40)
 		y_coord= random.randint(20, self.canvas.winfo_height()-40)
 		for i in range(len(self.nodes)):
@@ -263,6 +262,8 @@ class MainApp:
 		
 		history= []
 		count_iter= self.textbox_iter.get()
+		best_path= []
+		best_cost= float('inf')
 		t0= time.time()
 
 		if   self.combobox_aco.get()==ALGO_ACO_HYBRID_GA:
@@ -283,15 +284,19 @@ class MainApp:
 				if iteration%ga_interval==0 and iteration!=0:
 					children_tours= generate_children(colony.get_best(10), num_children=10, mutation_rate=0.1)
 					colony.replace_worst(children_tours)
-				best= colony.get_best()[0]
-				# history.append([ant for ant in colony.ants])
+
+				for ant in colony.ants:
+					if best_cost>ant.cost:
+						best_cost=ant.cost
+						best_path=ant.tour
+				
 				history.append({
 					'ants': [Ant(ant.cost, ant.tour) for ant in colony.ants],
-					'best_tour': best.tour,
-					'best_cost': best.cost,
+					'best_tour': best_path,
+					'best_cost': best_cost,
 				})
-				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
-				# loss[iteration]= best.cost
+				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best_cost}')
+		
 		elif self.combobox_aco.get()==ALGO_ACO_SYSTEM:
 			colony= SystemACO(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
@@ -306,15 +311,17 @@ class MainApp:
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
 				colony.update()
-				best= colony.get_best()[0]
-				# history.append([ant for ant in colony.ants])
+				for ant in colony.ants:
+					if best_cost>ant.cost:
+						best_cost=ant.cost
+						best_path=ant.tour
 				history.append({
 					'ants': [Ant(ant.cost, ant.tour) for ant in colony.ants],
-					'best_tour': best.tour,
-					'best_cost': best.cost,
+					'best_tour': best_path,
+					'best_cost': best_cost,
 				})
-				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
-				# loss[iteration]= best.cost
+				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best_cost}')
+			
 		elif self.combobox_aco.get()==ALGO_ACO_MAXMIN:
 			colony= MaxMinACO(self.nodes,
 				# lambda c1, c2: abs(c1.x-c2.x)+abs(c1.y-c2.y),		#l1_norm - Manhattan Distance
@@ -329,15 +336,17 @@ class MainApp:
 			loss=[0.0]*count_iter
 			for iteration in range(count_iter):
 				colony.update()
-				best= colony.get_best()[0]
-				# history.append([ant for ant in colony.ants])
+				for ant in colony.ants:
+					if best_cost>ant.cost:
+						best_cost=ant.cost
+						best_path=ant.tour
 				history.append({
 					'ants': [Ant(ant.cost, ant.tour) for ant in colony.ants],
-					'best_tour': best.tour,
-					'best_cost': best.cost,
+					'best_tour': best_path,
+					'best_cost': best_cost,
 				})
-				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
-				# loss[iteration]= best.cost
+				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best_cost}')
+	
 		elif self.combobox_aco.get()==ALGO_ACO_HYBRID_SA:
 			if self.slider_sa_temp_max.get()<self.slider_sa_temp_min.get():
 				messagebox.showerror('ERROR!', 'Minimum temperature must be less than maximum!')
@@ -355,22 +364,25 @@ class MainApp:
 			)
 			for iteration in range(count_iter):
 				colony.update()
-				best= colony.get_best()[0]
+				for ant in colony.ants:
+					if best_cost>ant.cost:
+						best_cost=ant.cost
+						best_path=ant.tour
 
-				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best.cost}')
-				new_tour, new_cost= simulated_annealing(best.tour, colony.cities, colony.objfunc,
+				print(f'Iteration {iteration+1:2d}/{count_iter} - Best Distance: {best_cost}')
+				new_path, new_cost= simulated_annealing(best_path, colony.cities, colony.objfunc,
 				                                        T_start=self.slider_sa_temp_max.get(),
 									T_end=  self.slider_sa_temp_min.get(),
 									alpha=  self.slider_sa_temp_alpha.get(),
 				)
-				if new_cost<best.cost:#Refine best ant using Simulated Annealing
-					best.tour= new_tour
-					best.cost= new_cost
+				if new_cost<best_cost:#Refine best ant using Simulated Annealing
+					best_path= new_path
+					best_cost= new_cost
 				
 				history.append({
 					'ants': [Ant(ant.cost, ant.tour) for ant in colony.ants],
-					'best_tour': best.tour,
-					'best_cost': best.cost,
+					'best_tour': best_path,
+					'best_cost': best_cost,
 				})
 		elif self.combobox_aco.get()==ALGO_ACO_DISTRIBUTED:
 			tsp= TSP(len(self.nodes), self.canvas.winfo_width()-40, self.canvas.winfo_height()-40, self.textbox_seed_gen.get())
@@ -410,8 +422,8 @@ class MainApp:
 		
 		dt= time.time()-t0
 
-		print(f'Best Tour: {[self.nodes[i].id for i in best.tour]}')
-		print(f'Best Distance: {best.cost} km')
+		print(f'Best Tour: {[self.nodes[i].id for i in best_path]}')
+		print(f'Best Distance: {best_cost} km')
 		print(f'Algorithm Time Taken: {dt} seconds')
 		print('Done\n')
 
@@ -471,14 +483,18 @@ class MainApp:
 							self.canvas_redraw()
 		#DRAW RESULT
 		self.canvas.delete('all')
-		for i in range(len(best.tour)-1):
-			idx1= best.tour[i]
-			idx2= best.tour[i+1]
+		for i in range(len(best_path)-1):
+			idx1= best_path[i]
+			idx2= best_path[i+1]
 			self.canvas.create_line(self.nodes[idx1].x, self.nodes[idx1].y, self.nodes[idx2].x, self.nodes[idx2].y, fill='red', width=2)
-		self.canvas.create_line(self.nodes[best.tour[-1]].x, self.nodes[best.tour[-1]].y,
-		                        self.nodes[best.tour[ 0]].x, self.nodes[best.tour[ 0]].y, fill='red', width=2)
+		self.canvas.create_line(self.nodes[best_path[-1]].x, self.nodes[best_path[-1]].y,
+		                        self.nodes[best_path[ 0]].x, self.nodes[best_path[ 0]].y, fill='red', width=2)
 		for node in self.nodes:
 			node.draw(self.canvas)
+
+		self.button_clear.config(state='enabled')
+		self.button_rand_generation.config(state='enabled')
+		self.button_rand_point.config(state='enabled')
 
 		loss= [history[i]['best_cost'] for i in range(len(history))]
 		plt.plot(range(count_iter), loss, 'b-')
@@ -487,10 +503,6 @@ class MainApp:
 		plt.ylabel('Total Distance')
 		plt.tight_layout()
 		plt.show()
-
-		self.button_clear.config(state='enabled')
-		self.button_rand_generation.config(state='enabled')
-		self.button_rand_point.config(state='enabled')
 
 	def canvas_clear(self):
 		self.canvas.delete('all')

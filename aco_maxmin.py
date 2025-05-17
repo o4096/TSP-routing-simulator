@@ -76,23 +76,30 @@ if __name__ == "__main__":
 	colony = MaxMinACO(cities, lambda c1, c2: np.sqrt((c1.x-c2.x)**2+(c1.y-c2.y)**2))
 
 	#Main Loop
-	ITERATIONS = 100
+	ITERATIONS= 100
 	loss=[0.0]*ITERATIONS
 	t0 = time.time()
+	best_cost= float('inf')
+	best_path= []
+
 	for iteration in range(ITERATIONS):
 		colony.update()
-		best= colony.get_best()[0]
-		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best.cost}')
-		loss[iteration]= best.cost
-	dt = time.time() - t0
+		for ant in colony.ants:
+			if best_cost>ant.cost:
+				best_cost=ant.cost
+				best_path=ant.tour
+
+		print(f'Iteration {iteration+1:2d}/{ITERATIONS} - Best Distance: {best_cost}')
+		loss[iteration]= best_cost
+	dt = time.time()-t0
 
 	best= colony.get_best()[0]
-	print(f'Best Tour: {[int(city) for city in best.tour]}')
-	print(f'Best Distance: {best.cost} km')
+	print(f'Best Tour: {[int(city) for city in best_path]}')
+	print(f'Best Distance: {best_cost} km')
 	print(f'Algorithm Time Taken: {dt} seconds')
 
-	x= [cities[i].x for i in best.tour]+[cities[best.tour[0]].x]
-	y= [cities[i].y for i in best.tour]+[cities[best.tour[0]].y]
+	x= [cities[i].x for i in best_path]+[cities[best_path[0]].x]
+	y= [cities[i].y for i in best_path]+[cities[best_path[0]].y]
 	plt.figure(figsize=(12, 6))
 	plt.subplot(1, 2, 1)
 	plt.plot(x, y, 'ro-')
